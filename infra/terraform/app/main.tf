@@ -172,6 +172,17 @@ resource "aws_security_group" "ec2" {
     cidr_blocks = var.allowed_http_cidrs
   }
 
+  dynamic "ingress" {
+    for_each = length(var.allowed_ssh_cidrs) > 0 ? [1] : []
+    content {
+      description = "SSH"
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = var.allowed_ssh_cidrs
+    }
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -242,6 +253,7 @@ resource "aws_iam_instance_profile" "ec2" {
 resource "aws_instance" "backend" {
   ami                         = data.aws_ami.al2023.id
   instance_type               = var.ec2_instance_type
+  key_name                    = var.ec2_key_pair_name
   subnet_id                   = aws_subnet.public_a.id
   vpc_security_group_ids      = [aws_security_group.ec2.id]
   iam_instance_profile        = aws_iam_instance_profile.ec2.name

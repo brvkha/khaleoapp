@@ -11,6 +11,7 @@ on:
 
 env:
   AWS_REGION: ap-southeast-1
+  PROJECT_NAME: khaleoapp
   DOCKER_IMAGE_NAME: brvkha/khaleoapp
   JDK_VERSION: '17'
 
@@ -55,48 +56,87 @@ jobs:
           cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache,mode=max
 
-      - name: Deploy to EC2
-        run: |
-          mkdir -p ~/.ssh
-          # Dùng HEREDOC để ghi file, đảm bảo giữ nguyên xuống dòng và khoảng trắng
-          cat << 'EOF' > ~/.ssh/deploy_key
-          ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          EOF
-          
-          chmod 600 ~/.ssh/deploy_key
-          
-          # Thêm cờ -v để debug nếu vẫn lỗi (nó sẽ in ra chi tiết kết nối)
-          ssh -T -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
-            ${{ secrets.EC2_SSH_USER }}@${{ secrets.EC2_HOST_STAGING }} << 'EOFSH'
-          set -e
-          echo "Connected successfully!"
-          echo "Pulling Docker image..."
-          docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
-          
-          echo "Stopping old container..."
-          docker stop khaleo-backend || true
-          docker rm khaleo-backend || true
-          
-          echo "Starting new container..."
-          docker run -d \
-            --name khaleo-backend \
-            -p 8080:8080 \
-            -e SPRING_PROFILES_ACTIVE=staging \
-            -e DB_HOST=${{ secrets.RDS_HOST_STAGING }} \
-            -e DB_NAME=${{ secrets.RDS_DB_NAME }} \
-            -e DB_USERNAME=${{ secrets.RDS_DB_USER }} \
-            -e DB_PASSWORD=${{ secrets.RDS_DB_PASSWORD }} \
-            -e JWT_SECRET=${{ secrets.JWT_SECRET_STAGING }} \
-            ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
-          
-          echo "Waiting for container to be ready..."
-          sleep 5
-          docker ps -a | grep khaleo-backend
-          EOFSH
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Cleanup SSH key
-        if: always()
-        run: rm -f ~/.ssh/deploy_key
+      - name: Resolve staging EC2 instance id
+        id: resolve_instance
+        run: |
+          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID_STAGING }}"
+
+          if [ -z "$INSTANCE_ID" ]; then
+            INSTANCE_ID=$(aws ec2 describe-instances \
+              --filters \
+                "Name=tag:Project,Values=${{ env.PROJECT_NAME }}" \
+                "Name=tag:Environment,Values=staging" \
+                "Name=instance-state-name,Values=running" \
+              --query 'Reservations[].Instances[].InstanceId | [0]' \
+              --output text)
+          fi
+
+          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            echo "Cannot resolve staging EC2 instance id. Set secret EC2_INSTANCE_ID_STAGING or verify tags Project/Environment."
+            exit 1
+          fi
+
+          echo "instance_id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to EC2 via SSM
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ steps.resolve_instance.outputs.instance_id }}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy backend ${GITHUB_SHA}" \
+            --parameters commands="set -e","docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}","docker stop khaleo-backend || true","docker rm khaleo-backend || true","docker run -d --name khaleo-backend -p 8080:8080 -e SPRING_PROFILES_ACTIVE=staging -e DB_HOST=${{ secrets.RDS_HOST_STAGING }} -e DB_NAME=${{ secrets.RDS_DB_NAME }} -e DB_USERNAME=${{ secrets.RDS_DB_USER }} -e DB_PASSWORD=${{ secrets.RDS_DB_PASSWORD }} -e JWT_SECRET=${{ secrets.JWT_SECRET_STAGING }} ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}","sleep 5","docker ps --filter name=khaleo-backend --format '{{.Names}} {{.Status}}'" \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "SSM command id: $COMMAND_ID"
+
+          for i in {1..30}; do
+            STATUS=$(aws ssm list-command-invocations \
+              --command-id "$COMMAND_ID" \
+              --details \
+              --query "CommandInvocations[0].Status" \
+              --output text)
+
+            echo "Current SSM status: $STATUS"
+
+            if [ "$STATUS" = "Success" ]; then
+              break
+            fi
+
+            if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
+              aws ssm list-command-invocations \
+                --command-id "$COMMAND_ID" \
+                --details \
+                --query "CommandInvocations[0].CommandPlugins[0].[Output,StandardErrorContent]" \
+                --output text
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          FINAL_STATUS=$(aws ssm list-command-invocations \
+            --command-id "$COMMAND_ID" \
+            --details \
+            --query "CommandInvocations[0].Status" \
+            --output text)
+
+          if [ "$FINAL_STATUS" != "Success" ]; then
+            echo "SSM command did not reach Success state. Final status: $FINAL_STATUS"
+            aws ssm list-command-invocations \
+              --command-id "$COMMAND_ID" \
+              --details \
+              --query "CommandInvocations[0].CommandPlugins[0].[Output,StandardErrorContent]" \
+              --output text
+            exit 1
+          fi
 
       - name: Notify success
         if: success()

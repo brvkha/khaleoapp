@@ -39,12 +39,9 @@ foreach ($line in $lines) {
 
     if ([string]::IsNullOrWhiteSpace($name)) { continue }
 
-    if ($name -eq "EC2_SSH_PRIVATE_KEY_PATH") {
-        if (-not (Test-Path $value)) {
-            throw "EC2_SSH_PRIVATE_KEY_PATH does not exist: $value"
-        }
-        $name = "EC2_SSH_PRIVATE_KEY"
-        $value = Get-Content -Path $value -Raw
+    if ($name -in @("EC2_SSH_PRIVATE_KEY_PATH", "EC2_SSH_USER")) {
+        Write-Host "Skip deprecated SSH secret: $name"
+        continue
     }
 
     $temp = [System.IO.Path]::GetTempFileName()

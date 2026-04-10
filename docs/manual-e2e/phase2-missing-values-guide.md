@@ -8,9 +8,7 @@ This guide lists values that cannot be discovered from local code alone and how 
 - `AWS_SECRET_ACCESS_KEY`
 - `S3_BUCKET_STAGING`
 - `CF_DIST_ID_STAGING`
-- `EC2_HOST_STAGING`
-- `EC2_SSH_USER`
-- `EC2_SSH_PRIVATE_KEY` (PEM file content)
+- `EC2_INSTANCE_ID_STAGING` (recommended)
 - `RDS_HOST_STAGING`
 - `RDS_DB_NAME` (default: `khaleoapp`)
 - `RDS_DB_USER` (default: `app_user`)
@@ -42,14 +40,15 @@ terraform -chdir="infra/terraform/app" output
 
 Collect:
 - EC2 public host/ip -> `EC2_HOST_STAGING` (from `api_public_ip`)
+- EC2 instance id -> `EC2_INSTANCE_ID_STAGING` (from `backend_instance_id`)
 - RDS endpoint -> `RDS_HOST_STAGING` (from `rds_endpoint`, strip port if present)
 - Frontend bucket -> `S3_BUCKET_STAGING` (from `frontend_bucket_name`)
 - CloudFront distribution id -> `CF_DIST_ID_STAGING` (from `cloudfront_distribution_id`)
 
-### 4) EC2 SSH
-- `EC2_SSH_USER`: usually `ec2-user` for Amazon Linux.
-- Keep your `.pem` file locally.
-- The wizard stores `EC2_SSH_PRIVATE_KEY_PATH` and the secrets script uploads it as `EC2_SSH_PRIVATE_KEY` automatically.
+### 4) Backend deploy access (SSM)
+- Ensure EC2 uses IAM instance profile with `AmazonSSMManagedInstanceCore`.
+- In Systems Manager -> Managed instances, verify the instance is Online.
+- Workflow deploys via `aws ssm send-command`, no SSH key required.
 
 ### 5) JWT secret
 Generate a random secret (at least 32 chars). Example PowerShell:
@@ -92,6 +91,7 @@ This auto-fills from Terraform outputs:
 - `S3_BUCKET_STAGING`
 - `CF_DIST_ID_STAGING`
 - `EC2_HOST_STAGING`
+- `EC2_INSTANCE_ID_STAGING`
 - `RDS_HOST_STAGING`
 
 Then run:

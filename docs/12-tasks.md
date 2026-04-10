@@ -728,7 +728,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 - Description:
   - .github/workflows/deploy-backend.yml
   - Trigger: push develop + backend/** paths
-  - Steps: checkout, JDK setup, mvn package, Docker build, push Hub, SSH EC2, docker run
+  - Steps: checkout, JDK setup, mvn package, Docker build, push Hub, SSM send-command, docker run
   - Secrets setup in GitHub
   - Test: push to develop, check Actions log
 
@@ -752,7 +752,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 - Description:
   - Create dummy commit on develop + backend/
   - Push, trigger workflow
-  - SSH to EC2, check docker ps for running container
+  - Verify SSM command success, then check docker ps for running container
   - Test API: curl http://localhost:8080/api/v1/auth/login
   - Note: BLOCKED local run vi can GitHub Actions + EC2 staging truy cap that.
 

@@ -60,6 +60,12 @@ variable "ec2_instance_type" {
   default     = "t3.micro"
 }
 
+variable "ec2_key_pair_name" {
+  description = "Optional EC2 key pair name for manual SSH access"
+  type        = string
+  default     = null
+}
+
 variable "db_instance_class" {
   description = "RDS MySQL instance class"
   type        = string
@@ -94,6 +100,12 @@ variable "allowed_http_cidrs" {
   description = "CIDRs allowed to reach 80/443 on EC2"
   type        = list(string)
   default     = ["0.0.0.0/0"]
+}
+
+variable "allowed_ssh_cidrs" {
+  description = "CIDRs allowed to reach 22 on EC2 (leave empty when using SSM-only access)"
+  type        = list(string)
+  default     = []
 }
 
 variable "enable_frontend_custom_domain" {

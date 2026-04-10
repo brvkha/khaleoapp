@@ -18,6 +18,11 @@ output "api_public_ip" {
   description = "EC2 elastic IP for API"
 }
 
+output "backend_instance_id" {
+  value       = aws_instance.backend.id
+  description = "EC2 instance id for backend host"
+}
+
 output "vpc_id" {
   value       = aws_vpc.main.id
   description = "VPC id"

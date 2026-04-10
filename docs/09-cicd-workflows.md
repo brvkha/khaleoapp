@@ -8,7 +8,7 @@
 
 ### Pipeline Strategy
 - **Frontend:** Build React → Sync S3 → CloudFront invalidate
-- **Backend:** Build JAR → Docker image → Push Hub → SSH EC2 → Container restart
+- **Backend:** Build JAR → Docker image → Push Hub → SSM Run Command → Container restart
 - Tự động trigger khi push to branch
 - Parallelizable: FE & BE có thể chạy đồng thời nếu file không overlap
 
@@ -83,9 +83,9 @@ on push to develop | main
    - Cache layer để lần sau build nhanh hơn
 
 #### Phase 3: Deploy
-7. **SSH to EC2** (thông qua GitHub secret key)
-   - Branch `develop` → `EC2_HOST_STAGING`
-   - Branch `main` → `EC2_HOST_PROD`
+7. **Resolve EC2 instance id**
+   - Branch `develop` ưu tiên `EC2_INSTANCE_ID_STAGING` hoặc fallback query theo tags `Project` + `Environment`
+8. **Run remote deploy script via AWS SSM** (`aws ssm send-command`)
 8. **On EC2, run script:**
    ```bash
    # Pull image mới nhất
@@ -116,18 +116,17 @@ on push to develop | main
 
 ### Secrets Required
 ```
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
 DOCKERHUB_USERNAME
 DOCKERHUB_TOKEN
-EC2_HOST_STAGING
-EC2_HOST_PROD
-EC2_SSH_USER
-EC2_SSH_PRIVATE_KEY
+EC2_INSTANCE_ID_STAGING (optional but recommended)
 RDS_HOST_PROD
 RDS_HOST_STAGING
 RDS_DB_NAME
 RDS_DB_USER
 RDS_DB_PASSWORD
-JWT_SECRET
+JWT_SECRET_STAGING
 ```
 
 ---
@@ -155,7 +154,7 @@ Developer Push Code
   ↓
 GitHub Actions Triggered
   ├─ Frontend: checkout → build → S3 sync → CF invalidate
-  └─ Backend: checkout → build JAR → Docker build → Docker push → SSH EC2 → docker run
+  └─ Backend: checkout → build JAR → Docker build → Docker push → SSM send-command → docker run
   ↓
 Both Status: ✅ Success / ❌ Failure → GitHub notification
   ↓
@@ -173,8 +172,8 @@ If OK, merge to main → Deploy Production
 - Nếu muốn rollback: push commit cũ hoặc tạo hotfix branch
 
 ### Backend
-- Container mới fail: giữ lại container cũ (docker stop mới không xóa old image)
-- Rollback: SSH vào EC2, `docker run ... old-image-id` hoặc pull tag cũ
+- Container mới fail: giữ lại image cũ (lệnh stop/rm chỉ xóa container)
+- Rollback: chạy lại workflow với commit/tag cũ hoặc gửi SSM command để `docker run ... old-image-id`
 
 ---
 
@@ -192,7 +191,7 @@ Setup trong GitHub Actions:
 ```
 [ ] AWS credentials setup trong GitHub Secrets
 [ ] Docker Hub account + token setup
-[ ] EC2 SSH key setup (PEM file content)
+[ ] EC2 instance managed bởi SSM (instance profile + SSM agent online)
 [ ] S3 buckets created (staging + prod)
 [ ] CloudFront distributions configured
 [ ] Route53 DNS pointing to CloudFront/EC2

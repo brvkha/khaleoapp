@@ -22,20 +22,15 @@ Write-Host "This script writes non-sensitive config files and a local secrets te
 $tfStateBucket = Read-Required "Terraform state S3 bucket name (global unique)"
 $dbPassword = Read-Required "Staging DB password"
 $ec2Host = Read-Required "Staging EC2 public host/IP"
+$ec2InstanceId = Read-Required "Staging EC2 instance id (i-...)"
 $rdsHost = Read-Required "Staging RDS endpoint hostname"
 $jwtSecret = Read-Required "JWT secret for staging"
 $dockerHubUser = Read-Required "Docker Hub username"
 $dockerHubToken = Read-Required "Docker Hub token/password"
-$ec2SshUser = Read-Required "EC2 SSH user (example: ec2-user)"
-$ec2SshPrivateKeyPath = Read-Required "Path to EC2 SSH private key file (.pem)"
 $s3BucketStaging = Read-Required "S3 bucket name for staging frontend"
 $cfDistIdStaging = Read-Required "CloudFront distribution id for staging"
 $awsAccessKeyId = Read-Required "AWS access key id (for GitHub Actions)"
 $awsSecretAccessKey = Read-Required "AWS secret access key (for GitHub Actions)"
-
-if (-not (Test-Path $ec2SshPrivateKeyPath)) {
-    throw "EC2 SSH private key path does not exist: $ec2SshPrivateKeyPath"
-}
 
 $bootstrapTfvars = @"
 aws_region           = "$AwsRegion"
@@ -91,8 +86,7 @@ CF_DIST_ID_STAGING=$cfDistIdStaging
 DOCKERHUB_USERNAME=$dockerHubUser
 DOCKERHUB_TOKEN=$dockerHubToken
 EC2_HOST_STAGING=$ec2Host
-EC2_SSH_USER=$ec2SshUser
-EC2_SSH_PRIVATE_KEY_PATH=$ec2SshPrivateKeyPath
+EC2_INSTANCE_ID_STAGING=$ec2InstanceId
 RDS_HOST_STAGING=$rdsHost
 RDS_DB_NAME=khaleoapp
 RDS_DB_USER=app_user
