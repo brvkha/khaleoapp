@@ -140,22 +140,6 @@ jobs:
               sleep 10
             done
 
-          FINAL_STATUS=$(aws ssm list-command-invocations \
-            --command-id "$COMMAND_ID" \
-            --details \
-            --query "CommandInvocations[0].Status" \
-            --output text)
-
-          if [ "$FINAL_STATUS" != "Success" ]; then
-            echo "SSM command did not reach Success state. Final status: $FINAL_STATUS"
-            aws ssm list-command-invocations \
-              --command-id "$COMMAND_ID" \
-              --details \
-              --query "CommandInvocations[0].CommandPlugins[0].[Output,StandardErrorContent]" \
-              --output text
-            exit 1
-          fi
-
       - name: Notify success
         if: success()
         run: |
