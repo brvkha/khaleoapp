@@ -14,8 +14,12 @@ terraform -chdir="$RepoRoot/infra/terraform/app" init -backend=false
 terraform -chdir="$RepoRoot/infra/terraform/app" validate
 
 Write-Host "[3/5] Parse workflow YAML files"
-Get-Content "$RepoRoot/.github/workflows/deploy-frontend.yml" -Raw | ConvertFrom-Yaml | Out-Null
-Get-Content "$RepoRoot/.github/workflows/deploy-backend.yml" -Raw | ConvertFrom-Yaml | Out-Null
+if (Get-Command ConvertFrom-Yaml -ErrorAction SilentlyContinue) {
+    Get-Content "$RepoRoot/.github/workflows/deploy-frontend.yml" -Raw | ConvertFrom-Yaml | Out-Null
+    Get-Content "$RepoRoot/.github/workflows/deploy-backend.yml" -Raw | ConvertFrom-Yaml | Out-Null
+} else {
+    Write-Host "ConvertFrom-Yaml not available in this PowerShell. Skip YAML parse check."
+}
 
 Write-Host "[4/5] Frontend build gate"
 Push-Location "$RepoRoot/frontend"
@@ -29,4 +33,5 @@ mvn -B -ntp clean package -DskipTests
 Pop-Location
 
 Write-Host "Done. For live staging deploy and AWS checks, continue with docs/manual-e2e/phase2-staging-runbook.md"
+
 

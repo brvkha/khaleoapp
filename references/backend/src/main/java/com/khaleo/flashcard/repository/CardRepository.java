@@ -1,0 +1,54 @@
+package com.khaleo.flashcard.repository;
+
+import com.khaleo.flashcard.entity.Card;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface CardRepository extends JpaRepository<Card, UUID> {
+
+    List<Card> findByDeckId(UUID deckId);
+
+    long countByDeckId(UUID deckId);
+
+    Page<Card> findByDeckId(UUID deckId, Pageable pageable);
+
+    @Query("""
+            select c from Card c
+            where c.deck.id = :deckId
+                and not exists (
+                    select 1 from CardLearningState cls
+                    where cls.card.id = c.id and cls.user.id = :userId
+                )
+            order by c.id asc
+            """)
+    List<Card> findUnseenCardsInDeck(
+            @Param("deckId") UUID deckId,
+            @Param("userId") UUID userId,
+            Pageable pageable);
+
+    @Query("""
+            select c from Card c
+            where c.deck.id = :deckId
+                and (
+                    (:frontText is null and :backText is null)
+                    or (:frontText is not null and lower(coalesce(c.frontText, '')) like lower(concat('%', :frontText, '%')))
+                    or (:backText is not null and lower(coalesce(c.backText, '')) like lower(concat('%', :backText, '%')))
+                )
+                and (:vocabulary is null or lower(coalesce(c.frontText, '')) = lower(:vocabulary) or lower(coalesce(c.backText, '')) = lower(:vocabulary))
+            """)
+    Page<Card> searchInDeck(
+            @Param("deckId") UUID deckId,
+            @Param("frontText") String frontText,
+            @Param("backText") String backText,
+            @Param("vocabulary") String vocabulary,
+            Pageable pageable);
+
+    @Modifying
+    void deleteByDeckId(UUID deckId);
+}

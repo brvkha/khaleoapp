@@ -1,11 +1,11 @@
 # Terraform Guide (KhaLeo)
 
-Thu muc nay chua ha tang AWS toi gian cho KhaLeo theo huong Free Tier first + de destroy.
+Thu muc nay chua ha tang AWS cho KhaLeo (staging + prod), uu tien don gian, de validate, va de destroy.
 
 ## Cau truc
 
 - `bootstrap/`: tao S3 remote state + DynamoDB lock + Session Manager basic logging.
-- `app/`: stack ha tang app (VPC, EC2, RDS, S3, CloudFront, Route53).
+- `app/`: stack ha tang app (VPC + public/private subnet + NAT, EC2 + IAM SSM, RDS, S3, CloudFront, Route53).
 
 ## 1) Bootstrap remote backend (chay 1 lan)
 
@@ -39,6 +39,20 @@ terraform -chdir="infra/terraform/app" init -reconfigure -backend-config="backen
 terraform -chdir="infra/terraform/app" apply -var-file="env/staging.tfvars"
 ```
 
+## 3.1) Local validate only (khong tao tai nguyen AWS)
+
+Neu chua co AWS credentials hoac muon check IaC truoc, chay:
+
+```powershell
+terraform -chdir="infra/terraform/bootstrap" fmt -check -recursive
+terraform -chdir="infra/terraform/bootstrap" validate
+terraform -chdir="infra/terraform/app" fmt -check -recursive
+terraform -chdir="infra/terraform/app" init -backend=false
+terraform -chdir="infra/terraform/app" validate
+```
+
+Lenh tren chi kiem tra format/syntax, khong provision AWS.
+
 ## 4) Destroy theo moi truong
 
 ```powershell
@@ -52,6 +66,6 @@ terraform -chdir="infra/terraform/app" destroy -var-file="env/prod.tfvars"
 ## Luu y chi phi
 
 - Thiet ke nay toi uu theo Free Tier, nhung van co the phat sinh phi neu vuot nguong Free Tier.
-- Khong su dung NAT Gateway de tranh chi phi cao.
+- Co NAT Gateway de private subnet outbound duoc (can cho update/package pull), can nhac destroy khi khong dung de giam phi.
 - Route53 hosted zone va mot so request co the van tinh phi nho.
 

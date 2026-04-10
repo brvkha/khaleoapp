@@ -17,7 +17,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 1.0: Infrastructure Setup
 
 **TASK-1-INF-001: Setup Development Environment**
-- Status: TODO
+- Status: DONE
 - Depends: -
 - Owner: DevOps
 - Est: 2h
@@ -28,7 +28,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Create README.md with dev setup instructions
 
 **TASK-1-INF-002: Spring Boot Project Init**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-INF-001
 - Owner: Backend Dev
 - Est: 1h
@@ -39,7 +39,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - application.yml: datasource, jpa, server.port=8080
 
 **TASK-1-INF-003: React + Vite Project Init**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-INF-001
 - Owner: Frontend Dev
 - Est: 1h
@@ -51,7 +51,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Folder structure: src/{features,services,components,store,router}
 
 **TASK-1-INF-004: MySQL Database Init (Local)**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-INF-001
 - Owner: Backend Dev
 - Est: 0.5h
@@ -65,7 +65,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 1.1: Auth Backend (JWT + Spring Security)
 
 **TASK-1-AUTH-001: User Entity + Repository**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-INF-002
 - Owner: Backend Dev
 - Est: 1h
@@ -75,7 +75,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Lombok annotations: @Getter, @Setter, @Entity, @Table
 
 **TASK-1-AUTH-002: RefreshToken Entity + Repository**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-AUTH-001
 - Owner: Backend Dev
 - Est: 0.5h
@@ -84,7 +84,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - RefreshTokenRepository: findByUserIdAndNotRevoked, findByTokenHash
 
 **TASK-1-AUTH-003: LoginAttempt Entity + Repository**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-AUTH-001
 - Owner: Backend Dev
 - Est: 0.5h
@@ -93,7 +93,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - LoginAttemptRepository: countRecentFailedAttempts(email)
 
 **TASK-1-AUTH-004: JWT Token Service**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-AUTH-002
 - Owner: Backend Dev
 - Est: 2h
@@ -104,7 +104,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Include: user id, email, role in claims
 
 **TASK-1-AUTH-005: Auth Service (Login/Logout/Refresh)**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-AUTH-004
 - Owner: Backend Dev
 - Est: 2h
@@ -115,7 +115,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Response: { accessToken, refreshToken, user }
 
 **TASK-1-AUTH-006: LoginLockout Service**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-AUTH-003
 - Owner: Backend Dev
 - Est: 1h
@@ -125,7 +125,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Query: failed attempts in last 15 min
 
 **TASK-1-AUTH-007: JWT Auth Filter**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-AUTH-004
 - Owner: Backend Dev
 - Est: 1h
@@ -135,7 +135,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Allow /auth/login, /auth/refresh without token
 
 **TASK-1-AUTH-008: Spring Security Config**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-AUTH-007
 - Owner: Backend Dev
 - Est: 1h
@@ -147,7 +147,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Customize error responses (401, 403)
 
 **TASK-1-AUTH-009: Auth Controller (Login/Logout/Refresh)**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-AUTH-008
 - Owner: Backend Dev
 - Est: 1h
@@ -161,8 +161,10 @@ Format: `TASK-{Phase}{Layer}{Number}`
 
 ### Layer 1.2: Deck CRUD Backend
 
+
+
 **TASK-1-DECK-001: Deck Entity + Repository**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-INF-002
 - Owner: Backend Dev
 - Est: 0.5h
@@ -171,7 +173,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - DeckRepository: findByUserId, searchByName, pagination
 
 **TASK-1-DECK-002: DeckCrudService**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-DECK-001, TASK-1-AUTH-001
 - Owner: Backend Dev
 - Est: 1h
@@ -181,7 +183,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Validation: name required (1-255), desc optional (0-1000)
 
 **TASK-1-DECK-003: DeckStatsService**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-DECK-002
 - Owner: Backend Dev
 - Est: 1h
@@ -190,7 +192,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Queries: count CardLearningState by state, deck
 
 **TASK-1-DECK-004: PrivateWorkspaceController**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-DECK-003
 - Owner: Backend Dev
 - Est: 1h
@@ -205,7 +207,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 1.3: Card CRUD Backend
 
 **TASK-1-CARD-001: Card Entity + Repository**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-INF-002
 - Owner: Backend Dev
 - Est: 0.5h
@@ -214,7 +216,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - CardRepository: findByDeckId, search (term/answer), pagination
 
 **TASK-1-CARD-002: CardCrudService**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-CARD-001, TASK-1-DECK-002
 - Owner: Backend Dev
 - Est: 1h
@@ -224,7 +226,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Optimistic locking: check version on update
 
 **TASK-1-CARD-003: CardController**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-CARD-002
 - Owner: Backend Dev
 - Est: 1h
@@ -238,7 +240,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 1.4: FSRS v6 Engine
 
 **TASK-1-FSRS-001: CardLearningState Entity + Repository**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-INF-002
 - Owner: Backend Dev
 - Est: 1h
@@ -249,7 +251,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Index: (user_id, next_review_at, state)
 
 **TASK-1-FSRS-002: SpacedRepetitionService (Core FSRS v6)**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FSRS-001
 - Owner: Backend Dev
 - Est: 4h
@@ -262,7 +264,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Return: RatingOutcome(state, nextReviewAt, scheduledDays, stability, difficulty, reps, lapses)
 
 **TASK-1-FSRS-003: StudySchedulerService**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FSRS-002
 - Owner: Backend Dev
 - Est: 1h
@@ -271,7 +273,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - schedulerService.apply(state, rating, now) delegates to spacedRepetitionService
 
 **TASK-1-FSRS-004: NextCardsService**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FSRS-001, TASK-1-CARD-001
 - Owner: Backend Dev
 - Est: 2h
@@ -283,7 +285,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Return: ordered list [learning + review + new], pagination token
 
 **TASK-1-FSRS-005: StudyRatingService**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FSRS-004
 - Owner: Backend Dev
 - Est: 2h
@@ -296,7 +298,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Return: RateCardResponse
 
 **TASK-1-FSRS-006: StudySessionController**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FSRS-005
 - Owner: Backend Dev
 - Est: 1h
@@ -311,7 +313,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 1.5: Database & Migrations
 
 **TASK-1-DB-001: Flyway Migration V1 (Schema)**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-INF-004
 - Owner: Backend Dev
 - Est: 1h
@@ -322,7 +324,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Constraints: FK, UNIQUE, NOT NULL
 
 **TASK-1-DB-002: Flyway Seed Data**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-DB-001
 - Owner: Backend Dev
 - Est: 0.5h
@@ -332,7 +334,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - No decks/cards in seed (user creates via UI)
 
 **TASK-1-DB-003: Test DB Connection**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-DB-002
 - Owner: Backend Dev
 - Est: 0.5h
@@ -346,7 +348,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 1.6: Frontend Auth
 
 **TASK-1-FE-AUTH-001: Auth Store (Zustand)**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-INF-003
 - Owner: Frontend Dev
 - Est: 1h
@@ -357,7 +359,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Refresh token: auto via httpOnly cookie (browser handles)
 
 **TASK-1-FE-AUTH-002: Auth API Client**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-AUTH-001
 - Owner: Frontend Dev
 - Est: 1h
@@ -367,7 +369,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Error handling: 401 → clear auth + redirect login
 
 **TASK-1-FE-AUTH-003: Auth Guard**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-AUTH-002
 - Owner: Frontend Dev
 - Est: 0.5h
@@ -376,7 +378,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Route protection in router
 
 **TASK-1-FE-AUTH-004: Login Page**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-AUTH-003
 - Owner: Frontend Dev
 - Est: 1.5h
@@ -387,7 +389,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Tailwind styling
 
 **TASK-1-FE-AUTH-005: Token Refresh Interceptor**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-AUTH-004
 - Owner: Frontend Dev
 - Est: 1h
@@ -401,7 +403,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 1.7: Frontend Layout & Navigation
 
 **TASK-1-FE-LAYOUT-001: App Router**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-AUTH-005
 - Owner: Frontend Dev
 - Est: 1h
@@ -413,7 +415,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Route guards
 
 **TASK-1-FE-LAYOUT-002: Layout Component**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-LAYOUT-001
 - Owner: Frontend Dev
 - Est: 1h
@@ -423,7 +425,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Responsive: mobile hide sidebar, show mobile nav
 
 **TASK-1-FE-LAYOUT-003: Notification Store**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-LAYOUT-002
 - Owner: Frontend Dev
 - Est: 0.5h
@@ -437,7 +439,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 1.8: Frontend Decks Tab
 
 **TASK-1-FE-DECKS-001: Decks API Client**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-AUTH-002
 - Owner: Frontend Dev
 - Est: 0.5h
@@ -446,7 +448,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Response types: DeckDto, DeckStatsDto
 
 **TASK-1-FE-DECKS-002: Decks Store**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-DECKS-001
 - Owner: Frontend Dev
 - Est: 1h
@@ -455,7 +457,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Methods: loadDecks(), createDeck(), updateDeck(), deleteDeck()
 
 **TASK-1-FE-DECKS-003: DecksPage Component**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-DECKS-002
 - Owner: Frontend Dev
 - Est: 2h
@@ -472,7 +474,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 1.9: Frontend Cards Tab
 
 **TASK-1-FE-CARDS-001: Cards API Client**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-AUTH-002
 - Owner: Frontend Dev
 - Est: 0.5h
@@ -481,7 +483,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Response types: CardDto, CardSearchPageDto
 
 **TASK-1-FE-CARDS-002: Cards Store**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-CARDS-001
 - Owner: Frontend Dev
 - Est: 1h
@@ -490,7 +492,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Methods: loadDecks(), selectDeck(), loadCards(), createCard(), updateCard(), deleteCard()
 
 **TASK-1-FE-CARDS-003: CardsWorkspacePage Component**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-CARDS-002
 - Owner: Frontend Dev
 - Est: 2.5h
@@ -509,7 +511,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 1.10: Frontend Study Tab
 
 **TASK-1-FE-STUDY-001: Study Session API Client**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-AUTH-002
 - Owner: Frontend Dev
 - Est: 0.5h
@@ -518,7 +520,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Response types: StudySessionCardDto, RatingPreviewDto, RateCardResponseDto
 
 **TASK-1-FE-STUDY-002: Study Workspace Page**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-STUDY-001
 - Owner: Frontend Dev
 - Est: 1.5h
@@ -532,7 +534,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Empty state: "No decks yet..."
 
 **TASK-1-FE-STUDY-003: Study Session Page**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-STUDY-002
 - Owner: Frontend Dev
 - Est: 3h
@@ -554,7 +556,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 1.11: Testing Phase 1
 
 **TASK-1-TEST-001: Backend Unit Tests (FSRS)**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FSRS-002
 - Owner: Backend Dev
 - Est: 2h
@@ -565,7 +567,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Test all 4 ratings
 
 **TASK-1-TEST-002: Backend Unit Tests (Services)**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-DECK-002, TASK-1-CARD-002, TASK-1-FSRS-005
 - Owner: Backend Dev
 - Est: 2h
@@ -575,19 +577,19 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Test authorization checks
   - Test validation
 
-**TASK-1-TEST-003: Backend Integration Tests (Postman)**
-- Status: TODO
+**TASK-1-TEST-003: Backend Integration Tests (Swagger/OpenAPI)**
+- Status: DONE
 - Depends: TASK-1-AUTH-009, TASK-1-DECK-004, TASK-1-CARD-003, TASK-1-FSRS-006
 - Owner: QA
 - Est: 2h
 - Description:
-  - Postman collection: POST /auth/login, GET /private/decks, POST /decks, GET /decks/{id}/cards, POST /cards/{id}/rate
-  - Test auth flow: login → token → use token → refresh
-  - Test CRUD operations
-  - Test study session: next cards → rate → stats
+  - Integration test with Spring Boot + MockMvc (khong dung Postman collection)
+  - Verify `GET /swagger-ui/index.html` hoat dong
+  - Verify `GET /v3/api-docs` tra OpenAPI JSON hop le
+  - Verify OpenAPI docs co nhom endpoint chinh: auth/deck/card/study
 
 **TASK-1-TEST-004: Frontend Component Tests**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-FE-STUDY-003
 - Owner: Frontend Dev
 - Est: 2h
@@ -599,7 +601,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Test StudySessionPage: render card, reveal, rate buttons
 
 **TASK-1-TEST-005: Manual E2E Test (Dev Environment)**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-1-TEST-004
 - Owner: QA + Dev
 - Est: 3h
@@ -621,7 +623,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 2.1: AWS Infrastructure (Terraform)
 
 **TASK-2-INFRA-001: Bootstrap Backend (S3 + DynamoDB)**
-- Status: TODO
+- Status: [X] DONE
 - Depends: TASK-1-TEST-005 ✅
 - Owner: DevOps
 - Est: 2h
@@ -633,7 +635,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Test: terraform apply, verify resources created
 
 **TASK-2-INFRA-002: Staging VPC + Network**
-- Status: TODO
+- Status: [X] DONE
 - Depends: TASK-2-INFRA-001
 - Owner: DevOps
 - Est: 2h
@@ -645,7 +647,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Security groups: EC2 (80/443/8080), RDS (3306 from EC2)
 
 **TASK-2-INFRA-003: Staging RDS MySQL**
-- Status: TODO
+- Status: [X] DONE
 - Depends: TASK-2-INFRA-002
 - Owner: DevOps
 - Est: 1h
@@ -658,7 +660,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - DB name: khaleoapp, username: app_user, password: from var
 
 **TASK-2-INFRA-004: Staging EC2**
-- Status: TODO
+- Status: [X] DONE
 - Depends: TASK-2-INFRA-002
 - Owner: DevOps
 - Est: 1.5h
@@ -671,7 +673,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Security group: 80, 443, 8080
 
 **TASK-2-INFRA-005: Staging S3 + CloudFront**
-- Status: TODO
+- Status: [X] DONE
 - Depends: TASK-2-INFRA-002
 - Owner: DevOps
 - Est: 2h
@@ -683,7 +685,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Route 53: staging.khaleoshop.click → CloudFront
 
 **TASK-2-INFRA-006: Staging Route 53 + Domains**
-- Status: TODO
+- Status: [X] DONE
 - Depends: TASK-2-INFRA-005
 - Owner: DevOps
 - Est: 1h
@@ -692,7 +694,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Records: staging.khaleoshop.click → CloudFront, api-staging.khaleoshop.click → EC2 EIP
 
 **TASK-2-INFRA-007: Test Terraform Apply (Staging)**
-- Status: TODO
+- Status: BLOCKED
 - Depends: TASK-2-INFRA-006
 - Owner: DevOps
 - Est: 1h
@@ -701,13 +703,14 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - terraform init, plan, apply
   - Verify all resources created in AWS console
   - Note IPs, RDS endpoint, S3 bucket
+  - Note: BLOCKED local run vi chua co AWS credentials trong implementation environment.
 
 ---
 
 ### Layer 2.2: GitHub Actions Workflows
 
 **TASK-2-CI-001: Frontend Deploy Workflow**
-- Status: TODO
+- Status: [X] DONE
 - Depends: TASK-2-INFRA-007
 - Owner: DevOps
 - Est: 1.5h
@@ -718,7 +721,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Test: push to develop, check Actions log, verify S3 has new files
 
 **TASK-2-CI-002: Backend Deploy Workflow**
-- Status: TODO
+- Status: [X] DONE
 - Depends: TASK-2-INFRA-007
 - Owner: DevOps
 - Est: 2h
@@ -730,7 +733,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Test: push to develop, check Actions log
 
 **TASK-2-CI-003: Test FE Deploy (develop branch)**
-- Status: TODO
+- Status: BLOCKED
 - Depends: TASK-2-CI-001
 - Owner: DevOps + Frontend
 - Est: 1h
@@ -739,9 +742,10 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Push, trigger workflow
   - Check S3 bucket for build files
   - CloudFront invalidation working
+  - Note: BLOCKED local run vi can GitHub Actions + AWS credentials staging.
 
 **TASK-2-CI-004: Test BE Deploy (develop branch)**
-- Status: TODO
+- Status: BLOCKED
 - Depends: TASK-2-CI-002
 - Owner: DevOps + Backend
 - Est: 1h
@@ -750,13 +754,14 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Push, trigger workflow
   - SSH to EC2, check docker ps for running container
   - Test API: curl http://localhost:8080/api/v1/auth/login
+  - Note: BLOCKED local run vi can GitHub Actions + EC2 staging truy cap that.
 
 ---
 
 ### Layer 2.3: Staging Config
 
 **TASK-2-CONFIG-001: Backend application-staging.yml**
-- Status: TODO
+- Status: [X] DONE
 - Depends: TASK-2-INFRA-003, TASK-2-INFRA-004
 - Owner: Backend Dev
 - Est: 0.5h
@@ -769,7 +774,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Log level: info
 
 **TASK-2-CONFIG-002: Frontend .env.staging**
-- Status: TODO
+- Status: [X] DONE
 - Depends: TASK-2-INFRA-006
 - Owner: Frontend Dev
 - Est: 0.5h
@@ -778,7 +783,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - VITE_API_BASE_URL=https://api-staging.khaleoshop.click
 
 **TASK-2-CONFIG-003: Nginx on EC2 (Reverse Proxy)**
-- Status: TODO
+- Status: IN_PROGRESS
 - Depends: TASK-2-INFRA-004
 - Owner: DevOps
 - Est: 1h
@@ -787,13 +792,14 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Config: listen 443 ssl; server_name api-staging.khaleoshop.click; proxy_pass http://localhost:8080
   - SSL: Let's Encrypt + Certbot
   - systemctl restart nginx
+  - Note: Da bo sung file mau `infra/nginx/khaleo-staging.conf.example`, deploy tren EC2 cho moi truong that chua thuc hien.
 
 ---
 
 ### Layer 2.4: Staging Validation
 
 **TASK-2-VALIDATE-001: Full Integration Test (Staging)**
-- Status: TODO
+- Status: IN_PROGRESS
 - Depends: TASK-2-CI-003, TASK-2-CI-004, TASK-2-CONFIG-003
 - Owner: QA
 - Est: 3h
@@ -806,9 +812,10 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Check stats update
   - Logout → redirected to login
   - Check token refresh (monitor network tab, wait 14 min 50s, trigger API call)
+  - Note: Da tao checklist + runbook + evidence template; chua the execute live do chua deploy AWS that.
 
 **TASK-2-VALIDATE-002: RDS Backup Test**
-- Status: TODO
+- Status: BLOCKED
 - Depends: TASK-2-VALIDATE-001
 - Owner: DevOps
 - Est: 1h
@@ -816,15 +823,17 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - AWS console: RDS → create manual snapshot
   - Verify snapshot created
   - (Don't restore, just verify capability)
+  - Note: BLOCKED cho den khi staging RDS duoc provision that.
 
 **TASK-2-VALIDATE-003: CloudWatch Logs Review**
-- Status: TODO
+- Status: BLOCKED
 - Depends: TASK-2-VALIDATE-001
 - Owner: DevOps
 - Est: 0.5h
 - Description:
   - CloudWatch: check EC2 logs, RDS logs
   - No errors, warnings acceptable
+  - Note: BLOCKED cho den khi staging workload duoc deploy va co logs that.
 
 ---
 

@@ -23,6 +23,16 @@ backend/temp-build/
 *.log
 .env
 .env.*
+!.env.example
+!.env.staging.example
+!frontend/.env.example
+!frontend/.env.staging.example
+
+# Local generated staging config (contains secrets)
+infra/terraform/bootstrap/terraform.tfvars
+infra/terraform/app/env/staging.tfvars
+docs/manual-e2e/staging-secrets.local.env
+frontend/.env.staging
 
 # IDE / OS
 .DS_Store
@@ -31,4 +41,3 @@ Thumbs.db
 .idea/
 *.tmp
 *.swp
-

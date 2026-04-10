@@ -83,8 +83,6 @@ VITE_MEDIA_MAX_MB=5
 "@
 Set-Content -Path "$RepoRoot\frontend\.env.staging" -Value $frontendEnvStaging -NoNewline -Encoding UTF8
 
-$ec2SshPrivateKey = Get-Content -Path $ec2SshPrivateKeyPath -Raw
-
 $githubSecretsLocal = @"
 AWS_ACCESS_KEY_ID=$awsAccessKeyId
 AWS_SECRET_ACCESS_KEY=$awsSecretAccessKey
@@ -94,7 +92,7 @@ DOCKERHUB_USERNAME=$dockerHubUser
 DOCKERHUB_TOKEN=$dockerHubToken
 EC2_HOST_STAGING=$ec2Host
 EC2_SSH_USER=$ec2SshUser
-EC2_SSH_PRIVATE_KEY=$ec2SshPrivateKey
+EC2_SSH_PRIVATE_KEY_PATH=$ec2SshPrivateKeyPath
 RDS_HOST_STAGING=$rdsHost
 RDS_DB_NAME=khaleoapp
 RDS_DB_USER=app_user
@@ -111,4 +109,3 @@ Write-Host "- frontend/.env.staging"
 Write-Host "- docs/manual-e2e/staging-secrets.local.env"
 Write-Host ""
 Write-Host "Next: run scripts\set-github-staging-secrets.ps1 to push secrets via gh CLI."
-

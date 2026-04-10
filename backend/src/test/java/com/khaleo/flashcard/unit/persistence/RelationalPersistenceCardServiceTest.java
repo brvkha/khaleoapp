@@ -50,7 +50,7 @@ class RelationalPersistenceCardServiceTest {
         DeckImportLinkRepository deckImportLinkRepository = Mockito.mock(DeckImportLinkRepository.class);
         ReimportMergeConflictRepository reimportMergeConflictRepository = Mockito.mock(ReimportMergeConflictRepository.class);
         StudyActivityLogPublisher studyActivityLogPublisher = Mockito.mock(StudyActivityLogPublisher.class);
-        PersistenceValidationExceptionMapper exceptionMapper = Mockito.mock(PersistenceValidationExceptionMapper.class);
+        PersistenceValidationExceptionMapper exceptionMapper = new PersistenceValidationExceptionMapper();
         CardLearningStateUpdateService cardLearningStateUpdateService = Mockito.mock(CardLearningStateUpdateService.class);
         deckCardAccessGuard = Mockito.mock(DeckCardAccessGuard.class);
         mediaReferenceService = Mockito.mock(MediaReferenceService.class);
@@ -112,7 +112,8 @@ class RelationalPersistenceCardServiceTest {
 
         assertThatThrownBy(() -> relationalPersistenceService.createCard(deckId, request))
                 .isInstanceOf(PersistenceValidationException.class)
-                .hasMessageContaining("CARD_VALIDATION_TERM_REQUIRED");
+                .satisfies(ex -> assertThat(((PersistenceValidationException) ex).getErrorCode())
+                        .isEqualTo(PersistenceValidationException.PersistenceErrorCode.VALIDATION_REJECTED));
 
         verify(cardRepository, never()).save(any(Card.class));
     }
@@ -128,7 +129,8 @@ class RelationalPersistenceCardServiceTest {
 
         assertThatThrownBy(() -> relationalPersistenceService.createCard(deckId, request))
                 .isInstanceOf(PersistenceValidationException.class)
-                .hasMessageContaining("CARD_VALIDATION_ANSWER_REQUIRED");
+                .satisfies(ex -> assertThat(((PersistenceValidationException) ex).getErrorCode())
+                        .isEqualTo(PersistenceValidationException.PersistenceErrorCode.VALIDATION_REJECTED));
 
         verify(cardRepository, never()).save(any(Card.class));
         verify(deckCardAccessGuard).ensureOwnerOrAdmin(eq(deck.getAuthor().getId()), eq("create"), eq("card"), eq(deckId.toString()));

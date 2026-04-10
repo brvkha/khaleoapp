@@ -10,10 +10,10 @@ docker compose up -d
 
 Write-Host "[2/5] Run backend test gate (unit + swagger integration)"
 Set-Location "$RepoRoot\backend"
-./mvnw -q "-Dtest=PrivateDeckCrudServiceTest,RelationalPersistenceCardServiceTest,StudyRatingServiceTest,SwaggerDocsIntegrationIT" test
+mvn "-Dtest=PrivateDeckCrudServiceTest,RelationalPersistenceCardServiceTest,StudyRatingServiceTest,SwaggerDocsIntegrationIT" test
 
 Write-Host "[3/5] Start backend in dedicated terminal/session"
-Write-Host "Command: Set-Location '$RepoRoot\backend'; ./mvnw spring-boot:run"
+Write-Host "Command: Set-Location '$RepoRoot\backend'; mvn spring-boot:run"
 
 Write-Host "[4/5] Start frontend in dedicated terminal/session"
 Write-Host "Command: Set-Location '$RepoRoot\frontend'; npm install; npm run dev"

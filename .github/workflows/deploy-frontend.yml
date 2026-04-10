@@ -4,10 +4,10 @@ on:
   push:
     branches:
       - develop
-      - main
     paths:
       - 'frontend/**'
       - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
 
 env:
   AWS_REGION: ap-southeast-1
@@ -16,12 +16,15 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -36,36 +39,25 @@ jobs:
         run: npm run build
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Determine S3 bucket
-        id: aws-config
-        run: |
-          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            echo "bucket=${{ secrets.S3_BUCKET_PROD }}" >> $GITHUB_OUTPUT
-            echo "dist_id=${{ secrets.CF_DIST_ID_PROD }}" >> $GITHUB_OUTPUT
-          else
-            echo "bucket=${{ secrets.S3_BUCKET_STAGING }}" >> $GITHUB_OUTPUT
-            echo "dist_id=${{ secrets.CF_DIST_ID_STAGING }}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Sync to S3
         working-directory: frontend
         run: |
-          aws s3 sync dist/ s3://${{ steps.aws-config.outputs.bucket }} --delete
+          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_STAGING }} --delete
 
       - name: Invalidate CloudFront
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id ${{ steps.aws-config.outputs.dist_id }} \
+            --distribution-id ${{ secrets.CF_DIST_ID_STAGING }} \
             --paths "/*"
 
       - name: Notify success
         if: success()
         run: |
-          echo "✅ Frontend deployed to ${{ github.ref }}"
+          echo "Frontend deployed to staging from develop"
 

@@ -15,6 +15,30 @@ variable "environment" {
   type        = string
 }
 
+variable "vpc_cidr" {
+  description = "Primary VPC CIDR block"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "public_subnet_cidr" {
+  description = "Public subnet CIDR block"
+  type        = string
+  default     = "10.0.1.0/24"
+}
+
+variable "private_subnet_a_cidr" {
+  description = "Private subnet A CIDR block"
+  type        = string
+  default     = "10.0.2.0/24"
+}
+
+variable "private_subnet_b_cidr" {
+  description = "Private subnet B CIDR block"
+  type        = string
+  default     = "10.0.3.0/24"
+}
+
 variable "route53_zone_name" {
   description = "Existing Route53 hosted zone name (no trailing dot), e.g. khaleoshop.click"
   type        = string
