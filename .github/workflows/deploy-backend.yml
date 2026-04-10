@@ -87,40 +87,58 @@ jobs:
 
       - name: Deploy to EC2 via SSM
         run: |
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "${{ steps.resolve_instance.outputs.instance_id }}" \
-            --document-name "AWS-RunShellScript" \
-            --comment "Deploy backend ${GITHUB_SHA}" \
-            --parameters commands="set -e","docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}","docker stop khaleo-backend || true","docker rm khaleo-backend || true","docker run -d --name khaleo-backend -p 8080:8080 -e SPRING_PROFILES_ACTIVE=staging -e DB_HOST=${{ secrets.RDS_HOST_STAGING }} -e DB_NAME=${{ secrets.RDS_DB_NAME }} -e DB_USERNAME=${{ secrets.RDS_DB_USER }} -e DB_PASSWORD=${{ secrets.RDS_DB_PASSWORD }} -e JWT_SECRET=${{ secrets.JWT_SECRET_STAGING }} ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}","sleep 5","docker ps --filter name=khaleo-backend --format '{{.Names}} {{.Status}}'" \
-            --query "Command.CommandId" \
-            --output text)
+            # 1. Tạo file JSON chứa các câu lệnh (Tránh lỗi thoát chuỗi và ký tự đặc biệt)
+            cat <<EOF > ssm_params.json
+            {
+              "commands": [
+                "set -e",
+                "docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}",
+                "docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
+                "docker stop khaleo-backend || true",
+                "docker rm khaleo-backend || true",
+                "docker run -d --name khaleo-backend -p 8080:8080 -e SPRING_PROFILES_ACTIVE=staging -e DB_HOST=${{ secrets.RDS_HOST_STAGING }} -e DB_NAME=${{ secrets.RDS_DB_NAME }} -e DB_USERNAME=${{ secrets.RDS_DB_USER }} -e DB_PASSWORD=${{ secrets.RDS_DB_PASSWORD }} -e JWT_SECRET=${{ secrets.JWT_SECRET_STAGING }} ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
+                "sleep 5",
+                "docker ps --filter name=khaleo-backend --format '{{.Names}} {{.Status}}'"
+              ]
+            }
+            EOF
 
-          echo "SSM command id: $COMMAND_ID"
-
-          for i in {1..30}; do
-            STATUS=$(aws ssm list-command-invocations \
-              --command-id "$COMMAND_ID" \
-              --details \
-              --query "CommandInvocations[0].Status" \
+            # 2. Gửi lệnh SSM sử dụng file JSON vừa tạo
+            COMMAND_ID=$(aws ssm send-command \
+              --instance-ids "${{ steps.resolve_instance.outputs.instance_id }}" \
+              --document-name "AWS-RunShellScript" \
+              --comment "Deploy backend ${GITHUB_SHA}" \
+              --parameters file://ssm_params.json \
+              --query "Command.CommandId" \
               --output text)
 
-            echo "Current SSM status: $STATUS"
+            echo "SSM command id: $COMMAND_ID"
 
-            if [ "$STATUS" = "Success" ]; then
-              break
-            fi
-
-            if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
-              aws ssm list-command-invocations \
+            # 3. Vòng lặp chờ kết quả (Giữ nguyên logic cũ của bạn)
+            for i in {1..30}; do
+              STATUS=$(aws ssm list-command-invocations \
                 --command-id "$COMMAND_ID" \
                 --details \
-                --query "CommandInvocations[0].CommandPlugins[0].[Output,StandardErrorContent]" \
-                --output text
-              exit 1
-            fi
+                --query "CommandInvocations[0].Status" \
+                --output text)
 
-            sleep 10
-          done
+              echo "Current SSM status: $STATUS"
+
+              if [ "$STATUS" = "Success" ]; then
+                break
+              fi
+
+              if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
+                echo "SSM Command Failed!"
+                aws ssm list-command-invocations \
+                  --command-id "$COMMAND_ID" \
+                  --details \
+                  --query "CommandInvocations[0].CommandPlugins[0].Output" \
+                  --output text
+                exit 1
+              fi
+              sleep 10
+            done
 
           FINAL_STATUS=$(aws ssm list-command-invocations \
             --command-id "$COMMAND_ID" \
