@@ -58,13 +58,18 @@ jobs:
       - name: Deploy to EC2
         run: |
           mkdir -p ~/.ssh
-          # Sử dụng printf để giữ nguyên định dạng xuống dòng của Private Key
-          printf "%s" "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          # Dùng HEREDOC để ghi file, đảm bảo giữ nguyên xuống dòng và khoảng trắng
+          cat << 'EOF' > ~/.ssh/deploy_key
+          ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          EOF
+          
           chmod 600 ~/.ssh/deploy_key
           
+          # Thêm cờ -v để debug nếu vẫn lỗi (nó sẽ in ra chi tiết kết nối)
           ssh -T -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
             ${{ secrets.EC2_SSH_USER }}@${{ secrets.EC2_HOST_STAGING }} << 'EOFSH'
           set -e
+          echo "Connected successfully!"
           echo "Pulling Docker image..."
           docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
           
