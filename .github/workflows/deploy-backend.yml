@@ -1,0 +1,107 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+
+env:
+  AWS_REGION: ap-southeast-1
+  DOCKER_IMAGE_NAME: khaleo/backend
+  JDK_VERSION: '17'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JDK_VERSION }}
+          cache: 'maven'
+
+      - name: Build JAR
+        working-directory: backend
+        run: ./mvnw clean package -DskipTests
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE_NAME }}:latest
+            ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache,mode=max
+
+      - name: Determine EC2 host
+        id: ec2-config
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "host=${{ secrets.EC2_HOST_PROD }}" >> $GITHUB_OUTPUT
+            echo "profile=prod" >> $GITHUB_OUTPUT
+          else
+            echo "host=${{ secrets.EC2_HOST_STAGING }}" >> $GITHUB_OUTPUT
+            echo "profile=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to EC2
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh -o StrictHostKeyChecking=no \
+            -i ~/.ssh/deploy_key \
+            ${{ secrets.EC2_SSH_USER }}@${{ steps.ec2-config.outputs.host }} << 'EOFSH'
+          set -e
+          echo "Pulling Docker image..."
+          docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+          
+          echo "Stopping old container..."
+          docker stop khaleo-backend || true
+          docker rm khaleo-backend || true
+          
+          echo "Starting new container..."
+          docker run -d \
+            --name khaleo-backend \
+            -p 8080:8080 \
+            -e SPRING_PROFILES_ACTIVE=${{ steps.ec2-config.outputs.profile }} \
+            -e DB_HOST=${{ github.ref == 'refs/heads/main' && secrets.RDS_HOST_PROD || secrets.RDS_HOST_STAGING }} \
+            -e DB_NAME=${{ secrets.RDS_DB_NAME }} \
+            -e DB_USER=${{ secrets.RDS_DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.RDS_DB_PASSWORD }} \
+            -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+          
+          echo "Waiting for container to be ready..."
+          sleep 5
+          docker ps -a | grep khaleo-backend
+          EOFSH
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: Notify success
+        if: success()
+        run: |
+          echo "✅ Backend deployed to ${{ github.ref }}"
+
