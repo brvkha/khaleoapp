@@ -58,10 +58,11 @@ jobs:
       - name: Deploy to EC2
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          # Sử dụng printf để giữ nguyên định dạng xuống dòng của Private Key
+          printf "%s" "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh -o StrictHostKeyChecking=no \
-            -i ~/.ssh/deploy_key \
+          
+          ssh -T -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
             ${{ secrets.EC2_SSH_USER }}@${{ secrets.EC2_HOST_STAGING }} << 'EOFSH'
           set -e
           echo "Pulling Docker image..."
