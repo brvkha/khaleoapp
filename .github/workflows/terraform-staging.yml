@@ -157,7 +157,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          TF_STATE_BUCKET="${{ secrets.TF_STATE_BUCKET_STAGING }}"
+          TF_LOCK_TABLE="${{ secrets.TF_LOCK_TABLE_STAGING }}"
+          if [ -z "$TF_LOCK_TABLE" ]; then
+            TF_LOCK_TABLE="khaleoapp-terraform-lock"
+          fi
+
           terraform -chdir="${TF_BOOTSTRAP_DIR}" init -input=false
+
+          import_if_exists() {
+            local address="$1"
+            local resource_id="$2"
+            terraform -chdir="${TF_BOOTSTRAP_DIR}" import -input=false "$address" "$resource_id" >/dev/null 2>&1 || true
+          }
+
+          import_if_exists aws_s3_bucket.tf_state "$TF_STATE_BUCKET"
+          import_if_exists aws_s3_bucket_versioning.tf_state "$TF_STATE_BUCKET"
+          import_if_exists aws_s3_bucket_server_side_encryption_configuration.tf_state "$TF_STATE_BUCKET"
+          import_if_exists aws_s3_bucket_public_access_block.tf_state "$TF_STATE_BUCKET"
+          import_if_exists aws_dynamodb_table.tf_lock "$TF_LOCK_TABLE"
+          import_if_exists 'aws_cloudwatch_log_group.ssm_session[0]' "/aws/ssm/${PROJECT_NAME}/session"
+          import_if_exists 'aws_ssm_document.session_preferences[0]' "SSM-SessionManagerRunShell"
+
           terraform -chdir="${TF_BOOTSTRAP_DIR}" apply -input=false -auto-approve
 
       - name: Terraform app init
