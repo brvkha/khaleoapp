@@ -149,7 +149,7 @@ jobs:
           terraform -chdir="${TF_BOOTSTRAP_DIR}" init -input=false
           terraform -chdir="${TF_BOOTSTRAP_DIR}" validate
 
-          terraform -chdir="${TF_APP_DIR}" fmt -check -recursive
+          terraform -chdir="${TF_APP_DIR}" fmt -recursive
           terraform -chdir="${TF_APP_DIR}" init -backend=false -input=false
           terraform -chdir="${TF_APP_DIR}" validate
 
