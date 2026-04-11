@@ -49,9 +49,27 @@ variable "frontend_domain_name" {
   type        = string
 }
 
+variable "frontend_additional_domain_names" {
+  description = "Additional frontend domains pointing to the same CloudFront distribution"
+  type        = list(string)
+  default     = []
+}
+
 variable "api_domain_name" {
   description = "API domain pointing to EC2 elastic IP, e.g. api.khaleoshop.click"
   type        = string
+}
+
+variable "backend_container_port" {
+  description = "Backend container port that Nginx proxies to on EC2"
+  type        = number
+  default     = 8080
+}
+
+variable "tls_email" {
+  description = "Optional email passed to certbot for API certificate registration"
+  type        = string
+  default     = ""
 }
 
 variable "ec2_instance_type" {

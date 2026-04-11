@@ -1,6 +1,7 @@
 name: Deploy Frontend
 
 on:
+  workflow_call:
   push:
     branches:
       - develop
@@ -12,6 +13,7 @@ on:
 env:
   AWS_REGION: ap-southeast-1
   NODE_VERSION: '20'
+  STAGING_API_BASE_URL_DEFAULT: https://api-staging.khaleoshop.click
 
 jobs:
   build-and-deploy:
@@ -36,7 +38,23 @@ jobs:
 
       - name: Build
         working-directory: frontend
-        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL_STAGING }}
+        run: |
+          if [ -z "$VITE_API_BASE_URL" ]; then
+            VITE_API_BASE_URL="${{ env.STAGING_API_BASE_URL_DEFAULT }}"
+          fi
+          echo "Using VITE_API_BASE_URL=$VITE_API_BASE_URL"
+          export VITE_API_BASE_URL
+          npm run build
+
+      - name: Ensure staging API endpoint is baked into frontend bundle
+        working-directory: frontend
+        run: |
+          if grep -R "localhost:8080" -n dist/assets; then
+            echo "Build artifact still contains localhost:8080 fallback"
+            exit 1
+          fi
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

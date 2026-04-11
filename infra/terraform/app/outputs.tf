@@ -23,6 +23,16 @@ output "backend_instance_id" {
   description = "EC2 instance id for backend host"
 }
 
+output "nginx_tls_ssm_document_name" {
+  value       = aws_ssm_document.nginx_tls_bootstrap.name
+  description = "SSM document name for idempotent Nginx/TLS bootstrap"
+}
+
+output "backend_container_port" {
+  value       = var.backend_container_port
+  description = "Backend port exposed on EC2 for reverse proxy"
+}
+
 output "vpc_id" {
   value       = aws_vpc.main.id
   description = "VPC id"

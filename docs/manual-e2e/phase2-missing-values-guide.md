@@ -16,7 +16,10 @@ This guide lists values that cannot be discovered from local code alone and how 
 - `JWT_SECRET_STAGING`
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
-- `tf_state_bucket_name` (for Terraform backend)
+- `TF_STATE_BUCKET_STAGING` (for Terraform backend)
+- `TF_LOCK_TABLE_STAGING` (optional, default `khaleoapp-terraform-lock`)
+- `TF_BACKEND_KEY_STAGING` (optional, default `khaleoapp/staging/terraform.tfstate`)
+- `VITE_API_BASE_URL_STAGING` (optional, default `https://api-staging.khaleoshop.click`)
 
 ## Step-by-step: Get each value
 
@@ -29,7 +32,7 @@ This guide lists values that cannot be discovered from local code alone and how 
 
 ### 2) Terraform state bucket name
 1. Choose a globally unique bucket name, e.g. `khaleoapp-tf-state-<random>`.
-2. Use that value for `tf_state_bucket_name`.
+2. Use that value for `TF_STATE_BUCKET_STAGING`.
 
 ### 3) Staging infra values (after `terraform apply`)
 Run:
@@ -77,7 +80,13 @@ PowerShell -ExecutionPolicy Bypass -File "scripts/setup-staging-config.ps1"
 PowerShell -ExecutionPolicy Bypass -File "scripts/set-github-staging-secrets.ps1"
 ```
 
-3. Trigger staging deploy (develop branch push).
+3. Trigger staging Terraform workflow (recommended before app deploy workflows):
+
+```powershell
+gh workflow run terraform-staging.yml --ref develop -f action=apply -f auto_approve=true
+```
+
+4. App deploy chain runs automatically after Terraform `apply`/`recreate` success (frontend + backend). Manual `workflow_dispatch` remains available for re-run.
 
 ## Faster path (less manual)
 
@@ -93,6 +102,8 @@ This auto-fills from Terraform outputs:
 - `EC2_HOST_STAGING`
 - `EC2_INSTANCE_ID_STAGING`
 - `RDS_HOST_STAGING`
+
+And auto-detects `TF_STATE_BUCKET_STAGING` from `infra/terraform/bootstrap/terraform.tfvars` when available.
 
 Then run:
 

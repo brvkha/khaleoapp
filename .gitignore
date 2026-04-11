@@ -18,6 +18,7 @@ backend/temp-build/
 **/.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
+*.tfplan
 
 # Logs and env
 *.log

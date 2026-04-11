@@ -4,6 +4,7 @@ param(
     [string]$Project = "khaleoapp",
     [string]$Route53ZoneName = "khaleoshop.click",
     [string]$FrontendDomain = "staging.khaleoshop.click",
+    [string]$FrontendAdditionalDomain = "stage.khaleoshop.click",
     [string]$ApiDomain = "api-staging.khaleoshop.click"
 )
 
@@ -25,6 +26,7 @@ $ec2Host = Read-Required "Staging EC2 public host/IP"
 $ec2InstanceId = Read-Required "Staging EC2 instance id (i-...)"
 $rdsHost = Read-Required "Staging RDS endpoint hostname"
 $jwtSecret = Read-Required "JWT secret for staging"
+$tlsEmail = Read-Host "TLS email for certbot (optional; press Enter to skip)"
 $dockerHubUser = Read-Required "Docker Hub username"
 $dockerHubToken = Read-Required "Docker Hub token/password"
 $s3BucketStaging = Read-Required "S3 bucket name for staging frontend"
@@ -59,7 +61,10 @@ private_subnet_a_cidr         = "10.0.2.0/24"
 private_subnet_b_cidr         = "10.0.3.0/24"
 route53_zone_name             = "$Route53ZoneName"
 frontend_domain_name          = "$FrontendDomain"
+frontend_additional_domain_names = ["$FrontendAdditionalDomain"]
 api_domain_name               = "$ApiDomain"
+backend_container_port        = 8080
+tls_email                     = "$tlsEmail"
 ec2_instance_type             = "t3.micro"
 db_instance_class             = "db.t3.micro"
 db_name                       = "khaleoapp"
@@ -92,6 +97,12 @@ RDS_DB_NAME=khaleoapp
 RDS_DB_USER=app_user
 RDS_DB_PASSWORD=$dbPassword
 JWT_SECRET_STAGING=$jwtSecret
+API_DOMAIN_STAGING=$ApiDomain
+VITE_API_BASE_URL_STAGING=https://$ApiDomain
+TLS_EMAIL_STAGING=$tlsEmail
+TF_STATE_BUCKET_STAGING=$tfStateBucket
+TF_LOCK_TABLE_STAGING=khaleoapp-terraform-lock
+TF_BACKEND_KEY_STAGING=khaleoapp/staging/terraform.tfstate
 "@
 Set-Content -Path "$RepoRoot\docs\manual-e2e\staging-secrets.local.env" -Value $githubSecretsLocal -NoNewline -Encoding UTF8
 
@@ -103,3 +114,4 @@ Write-Host "- frontend/.env.staging"
 Write-Host "- docs/manual-e2e/staging-secrets.local.env"
 Write-Host ""
 Write-Host "Next: run scripts\set-github-staging-secrets.ps1 to push secrets via gh CLI."
+Write-Host "Then you can run workflow '.github/workflows/terraform-staging.yml' (apply/destroy/recreate)."

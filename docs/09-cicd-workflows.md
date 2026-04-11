@@ -8,7 +8,8 @@
 
 ### Pipeline Strategy
 - **Frontend:** Build React → Sync S3 → CloudFront invalidate
-- **Backend:** Build JAR → Docker image → Push Hub → SSM Run Command → Container restart
+- **Backend:** Build JAR → Docker image → Push Hub → SSM Nginx/TLS bootstrap → SSM container restart
+- **Infra chain:** `terraform-staging.yml` (apply/recreate) calls frontend/backend staging deploy workflows directly via `workflow_call`
 - Tự động trigger khi push to branch
 - Parallelizable: FE & BE có thể chạy đồng thời nếu file không overlap
 
@@ -22,13 +23,16 @@ on push to develop | main
   paths:
     - frontend/**
     - .github/workflows/deploy-frontend.yml
+as reusable workflow (`workflow_call`) from `terraform-staging.yml`
 ```
 
 ### Steps
 1. **Checkout code**
 2. **Setup Node.js 18** (cache npm)
 3. **Install dependencies** (`npm ci`)
-4. **Build** (`npm run build`)
+4. **Build** (`npm run build`) with `VITE_API_BASE_URL`
+   - Use `VITE_API_BASE_URL_STAGING` secret when available
+   - Fallback to `https://api-staging.khaleoshop.click` to avoid localhost leakage in staging bundle
 5. **AWS credentials** (access key + secret key)
 6. **Sync dist/ to S3**
    - Branch `develop` → `S3_BUCKET_STAGING`
@@ -52,6 +56,7 @@ S3_BUCKET_STAGING
 S3_BUCKET_PROD
 CF_DIST_ID_STAGING
 CF_DIST_ID_PROD
+VITE_API_BASE_URL_STAGING (optional, defaults to https://api-staging.khaleoshop.click)
 ```
 
 ---
@@ -64,6 +69,7 @@ on push to develop | main
   paths:
     - backend/**
     - .github/workflows/deploy-backend.yml
+as reusable workflow (`workflow_call`) from `terraform-staging.yml`
 ```
 
 ### Steps
@@ -85,8 +91,9 @@ on push to develop | main
 #### Phase 3: Deploy
 7. **Resolve EC2 instance id**
    - Branch `develop` ưu tiên `EC2_INSTANCE_ID_STAGING` hoặc fallback query theo tags `Project` + `Environment`
-8. **Run remote deploy script via AWS SSM** (`aws ssm send-command`)
-8. **On EC2, run script:**
+8. **Bootstrap/reconcile Nginx + TLS via Terraform-managed SSM document** (`${project}-${environment}-nginx-tls-bootstrap`)
+9. **Run backend deploy script via AWS SSM** (`aws ssm send-command`)
+10. **On EC2, run script:**
    ```bash
    # Pull image mới nhất
    docker pull khaleo/backend:{github.sha}
@@ -112,7 +119,7 @@ on push to develop | main
 - ✅ JAR compiled, tested skipped (tối ưu tốc độ)
 - ✅ Docker image pushed to Hub
 - ✅ New container running on EC2
-- ✅ Service available ở `http://api.{domain}` (thông qua Nginx)
+- ✅ Service available ở `https://api.{domain}` (Nginx TLS + reverse proxy reconciled each deploy)
 
 ### Secrets Required
 ```
@@ -127,6 +134,8 @@ RDS_DB_NAME
 RDS_DB_USER
 RDS_DB_PASSWORD
 JWT_SECRET_STAGING
+API_DOMAIN_STAGING (optional, defaults to api-staging.khaleoshop.click)
+TLS_EMAIL_STAGING (optional, recommended)
 ```
 
 ---
@@ -153,8 +162,10 @@ JWT_SECRET_STAGING
 Developer Push Code
   ↓
 GitHub Actions Triggered
+  ├─ (Infra changes) terraform-staging.yml
+  │    └─ if apply/recreate success => call deploy frontend + deploy backend jobs
   ├─ Frontend: checkout → build → S3 sync → CF invalidate
-  └─ Backend: checkout → build JAR → Docker build → Docker push → SSM send-command → docker run
+  └─ Backend: checkout → build JAR → Docker build → Docker push → SSM nginx/tls bootstrap → SSM docker run
   ↓
 Both Status: ✅ Success / ❌ Failure → GitHub notification
   ↓
@@ -173,7 +184,7 @@ If OK, merge to main → Deploy Production
 
 ### Backend
 - Container mới fail: giữ lại image cũ (lệnh stop/rm chỉ xóa container)
-- Rollback: chạy lại workflow với commit/tag cũ hoặc gửi SSM command để `docker run ... old-image-id`
+- Rollback: chạy lại workflow với commit/tag cũ (nginx/tls bootstrap vẫn chạy idempotent trước khi restart container)
 
 ---
 
@@ -192,6 +203,7 @@ Setup trong GitHub Actions:
 [ ] AWS credentials setup trong GitHub Secrets
 [ ] Docker Hub account + token setup
 [ ] EC2 instance managed bởi SSM (instance profile + SSM agent online)
+[ ] Terraform app module applied at least once (creates `${project}-${environment}-nginx-tls-bootstrap` SSM document)
 [ ] S3 buckets created (staging + prod)
 [ ] CloudFront distributions configured
 [ ] Route53 DNS pointing to CloudFront/EC2

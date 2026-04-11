@@ -691,10 +691,10 @@ Format: `TASK-{Phase}{Layer}{Number}`
 - Est: 1h
 - Description:
   - Terraform: app/route53.tf
-  - Records: staging.khaleoshop.click → CloudFront, api-staging.khaleoshop.click → EC2 EIP
+  - Records: staging.khaleoshop.click, stage.khaleoshop.click → CloudFront, api-staging.khaleoshop.click → EC2 EIP
 
 **TASK-2-INFRA-007: Test Terraform Apply (Staging)**
-- Status: BLOCKED
+- Status: [X] DONE
 - Depends: TASK-2-INFRA-006
 - Owner: DevOps
 - Est: 1h
@@ -703,7 +703,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - terraform init, plan, apply
   - Verify all resources created in AWS console
   - Note IPs, RDS endpoint, S3 bucket
-  - Note: BLOCKED local run vi chua co AWS credentials trong implementation environment.
+  - Evidence: Apply completed 2026-04-10, outputs include `backend_instance_id`, `api_public_ip`, `cloudfront_distribution_id`.
 
 ---
 
@@ -733,7 +733,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Test: push to develop, check Actions log
 
 **TASK-2-CI-003: Test FE Deploy (develop branch)**
-- Status: BLOCKED
+- Status: [X] DONE
 - Depends: TASK-2-CI-001
 - Owner: DevOps + Frontend
 - Est: 1h
@@ -742,10 +742,10 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Push, trigger workflow
   - Check S3 bucket for build files
   - CloudFront invalidation working
-  - Note: BLOCKED local run vi can GitHub Actions + AWS credentials staging.
+  - Evidence: GitHub Actions success run `24232134510`.
 
 **TASK-2-CI-004: Test BE Deploy (develop branch)**
-- Status: BLOCKED
+- Status: [X] DONE
 - Depends: TASK-2-CI-002
 - Owner: DevOps + Backend
 - Est: 1h
@@ -754,7 +754,21 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Push, trigger workflow
   - Verify SSM command success, then check docker ps for running container
   - Test API: curl http://localhost:8080/api/v1/auth/login
-  - Note: BLOCKED local run vi can GitHub Actions + EC2 staging truy cap that.
+  - Evidence: GitHub Actions success run `24235846860` after SSM + disk-capacity fixes.
+
+**TASK-2-CI-005: Terraform Staging Automation Workflow (Bootstrap + Apply/Destroy/Recreate)**
+- Status: [X] DONE
+- Depends: TASK-2-INFRA-007
+- Owner: DevOps
+- Est: 1.5h
+- Description:
+  - Add `.github/workflows/terraform-staging.yml` to automate bootstrap + app stack lifecycle for staging.
+  - Support `workflow_dispatch` with `action=apply|destroy|recreate` for destroy/recreate reproducibility.
+  - Generate CI tfvars/backend config from staging secrets (no local tfvars dependency).
+  - Validate Terraform fmt/validate in workflow before mutating actions.
+  - Update runbook/scripts/docs to include new required secrets (`TF_STATE_BUCKET_STAGING`, optional lock/backend key overrides).
+  - Added full-auto chain (2026-04-11): successful Terraform `apply`/`recreate` now calls `.github/workflows/deploy-frontend.yml` and `.github/workflows/deploy-backend.yml` via reusable workflow (`workflow_call`) in the same pipeline.
+  - Added staging frontend API hardening (2026-04-11): frontend deploy workflow injects `VITE_API_BASE_URL` from `VITE_API_BASE_URL_STAGING` (fallback `https://api-staging.khaleoshop.click`) and fails build validation if `localhost:8080` is still present in built assets.
 
 ---
 
@@ -783,23 +797,23 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - VITE_API_BASE_URL=https://api-staging.khaleoshop.click
 
 **TASK-2-CONFIG-003: Nginx on EC2 (Reverse Proxy)**
-- Status: IN_PROGRESS
+- Status: [X] DONE
 - Depends: TASK-2-INFRA-004
 - Owner: DevOps
 - Est: 1h
 - Description:
-  - SSH to EC2, create /etc/nginx/sites-available/khaleo-staging
-  - Config: listen 443 ssl; server_name api-staging.khaleoshop.click; proxy_pass http://localhost:8080
-  - SSL: Let's Encrypt + Certbot
-  - systemctl restart nginx
-  - Note: Da bo sung file mau `infra/nginx/khaleo-staging.conf.example`, deploy tren EC2 cho moi truong that chua thuc hien.
+  - Terraform app module creates SSM document `${project}-${environment}-nginx-tls-bootstrap`
+  - Backend deploy workflow executes document before container deployment (SSM only, no SSH key)
+  - Config: listen 443 ssl; server_name api-staging.khaleoshop.click; proxy_pass http://127.0.0.1:8080
+  - SSL: Let's Encrypt + Certbot with `--keep-until-expiring` for idempotent re-run on every deploy
+  - Evidence (2026-04-11 update): manual one-off SSM command replaced by CI/CD-integrated bootstrap in `.github/workflows/deploy-backend.yml` and Terraform resource `aws_ssm_document.nginx_tls_bootstrap`.
 
 ---
 
 ### Layer 2.4: Staging Validation
 
 **TASK-2-VALIDATE-001: Full Integration Test (Staging)**
-- Status: IN_PROGRESS
+- Status: [X] DONE
 - Depends: TASK-2-CI-003, TASK-2-CI-004, TASK-2-CONFIG-003
 - Owner: QA
 - Est: 3h
@@ -812,10 +826,11 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Check stats update
   - Logout → redirected to login
   - Check token refresh (monitor network tab, wait 14 min 50s, trigger API call)
-  - Note: Da tao checklist + runbook + evidence template; chua the execute live do chua deploy AWS that.
+  - Evidence (2026-04-11): `https://staging.khaleoshop.click` and `https://stage.khaleoshop.click` return `200`; API auth flow validated (`login`, `refresh`, `logout`); EC2 runtime log review via SSM command `7f573019-b999-42c5-9214-81ae963634c5` confirms deck/card create and study ratings `AGAIN/HARD/GOOD/EASY`.
+  - Note: Browser screenshot capture was not executed from this environment; evidence is CLI/API/SSM based and documented in `docs/manual-e2e/phase2-staging-evidence.md`.
 
 **TASK-2-VALIDATE-002: RDS Backup Test**
-- Status: BLOCKED
+- Status: [X] DONE
 - Depends: TASK-2-VALIDATE-001
 - Owner: DevOps
 - Est: 1h
@@ -823,17 +838,18 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - AWS console: RDS → create manual snapshot
   - Verify snapshot created
   - (Don't restore, just verify capability)
-  - Note: BLOCKED cho den khi staging RDS duoc provision that.
+  - Evidence (2026-04-11): manual snapshot `khaleoapp-staging-db-manual-20260411144139` created and reached `available` at `2026-04-11T07:41:53.088000+00:00`.
 
 **TASK-2-VALIDATE-003: CloudWatch Logs Review**
-- Status: BLOCKED
+- Status: [X] DONE
 - Depends: TASK-2-VALIDATE-001
 - Owner: DevOps
 - Est: 0.5h
 - Description:
   - CloudWatch: check EC2 logs, RDS logs
   - No errors, warnings acceptable
-  - Note: BLOCKED cho den khi staging workload duoc deploy va co logs that.
+  - Evidence (2026-04-11): reviewed EC2 runtime logs (SSM output), RDS error logs, and CloudWatch metrics (EC2/RDS CPU + RDS connections).
+  - Finding: non-fatal backend errors exist for async DynamoDB activity-log writes (`dynamodb:PutItem` denied on `StudyActivityLog`), while core auth/deck/card/study flows succeed.
 
 ---
 

@@ -39,6 +39,11 @@ foreach ($line in $lines) {
 
     if ([string]::IsNullOrWhiteSpace($name)) { continue }
 
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        Write-Host "Skip empty secret value: $name"
+        continue
+    }
+
     if ($name -in @("EC2_SSH_PRIVATE_KEY_PATH", "EC2_SSH_USER")) {
         Write-Host "Skip deprecated SSH secret: $name"
         continue
@@ -48,6 +53,9 @@ foreach ($line in $lines) {
     try {
         Set-Content -Path $temp -Value $value -NoNewline -Encoding UTF8
         gh secret set $name --repo $GitHubRepo --env staging --body "$(Get-Content -Raw $temp)" | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to set secret: $name"
+        }
         Write-Host "Set secret: $name"
     }
     finally {

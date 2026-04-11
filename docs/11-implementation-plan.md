@@ -161,7 +161,7 @@ Dự án KhaLeo flashcard app. Roadmap chia thành 3 phase (Local Dev → Stagin
 - [ ] **Staging S3 + CloudFront**
   - S3 bucket: staging frontend build
   - CloudFront: OAC for S3, HTTPS via ACM
-  - Route 53: staging.khaleoshop.click → CloudFront
+  - Route 53: staging.khaleoshop.click, stage.khaleoshop.click → CloudFront
   - api-staging.khaleoshop.click → EC2 Elastic IP
 
 ### 2.2 GitHub Actions Workflows
@@ -193,7 +193,7 @@ Dự án KhaLeo flashcard app. Roadmap chia thành 3 phase (Local Dev → Stagin
 - [ ] **Nginx on EC2**
   - Reverse proxy: api-staging.khaleoshop.click → localhost:8080
   - SSL/TLS: Let's Encrypt + Certbot
-  - Config: /etc/nginx/sites-available/khaleo-staging
+  - Automated via Terraform-managed SSM document + backend deploy workflow (no manual SSH/one-off command)
 
 ### 2.4 Staging Validation
 - [ ] **Full integration test on staging**
@@ -346,10 +346,12 @@ Phase 4 (Parallel)
 - [ ] 404/500 errors handled gracefully
 
 ### Phase 2
-- [ ] Staging fully deployed and accessible
-- [ ] GitHub Actions workflows run successfully
-- [ ] QA can test on staging.khaleoshop.click
-- [ ] No console errors in browser
+- [x] Staging infra + DNS records provisioned (`staging.khaleoshop.click`, `stage.khaleoshop.click`, `api-staging.khaleoshop.click`)
+- [x] GitHub Actions FE/BE staging workflows run successfully
+- [ ] QA can test on staging.khaleoshop.click (manual flow pending)
+- [ ] No console errors in browser (manual verification pending)
+
+Note (2026-04-10): Phase 2 deployment lane is complete; manual QA validation and ops evidence finalization remain open.
 
 ### Phase 3
 - [ ] Production live at khaleoshop.click

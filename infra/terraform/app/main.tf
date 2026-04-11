@@ -259,10 +259,21 @@ resource "aws_instance" "backend" {
   iam_instance_profile        = aws_iam_instance_profile.ec2.name
   associate_public_ip_address = true
 
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+  }
+
   user_data = <<-EOT
     #!/bin/bash
+    set -euxo pipefail
+
     dnf update -y
-    dnf install -y docker nginx
+    dnf install -y docker nginx amazon-ssm-agent
+
+    systemctl enable amazon-ssm-agent
+    systemctl restart amazon-ssm-agent
+
     systemctl enable docker
     systemctl start docker
     systemctl enable nginx
@@ -281,6 +292,63 @@ resource "aws_eip" "backend" {
   tags = merge(local.tags, {
     Name = "${local.name_prefix}-backend-eip"
   })
+}
+
+resource "aws_ssm_document" "nginx_tls_bootstrap" {
+  name          = "${local.name_prefix}-nginx-tls-bootstrap"
+  document_type = "Command"
+
+  content = jsonencode({
+    schemaVersion = "2.2"
+    description   = "Configure Nginx reverse proxy + TLS certificate for API domain"
+    parameters = {
+      ApiDomain = {
+        type        = "String"
+        description = "Fully qualified API domain name"
+        default     = var.api_domain_name
+      }
+      BackendPort = {
+        type        = "String"
+        description = "Backend container port"
+        default     = tostring(var.backend_container_port)
+      }
+      TlsEmail = {
+        type        = "String"
+        description = "Optional email for certbot registration"
+        default     = var.tls_email
+      }
+    }
+    mainSteps = [
+      {
+        action = "aws:runShellScript"
+        name   = "configureNginxTls"
+        inputs = {
+          timeoutSeconds = "1200"
+          runCommand = [
+            "set -euo pipefail",
+            "API_DOMAIN='{{ ApiDomain }}'",
+            "BACKEND_PORT='{{ BackendPort }}'",
+            "TLS_EMAIL='{{ TlsEmail }}'",
+            "sudo dnf install -y nginx certbot python3-certbot-nginx",
+            "sudo systemctl enable nginx",
+            "sudo mkdir -p /var/www/certbot",
+            "sudo tee /etc/nginx/conf.d/khaleo-api.conf >/dev/null <<EOF\nserver {\n    listen 80;\n    server_name $${API_DOMAIN};\n\n    location /.well-known/acme-challenge/ {\n        root /var/www/certbot;\n    }\n\n    location / {\n        return 301 https://\\$host\\$request_uri;\n    }\n}\nEOF",
+            "sudo nginx -t",
+            "sudo systemctl restart nginx",
+            "CERT_PATH=\"/etc/letsencrypt/live/$${API_DOMAIN}/fullchain.pem\"",
+            "if [ ! -f \"$${CERT_PATH}\" ]; then if [ -n \"$${TLS_EMAIL}\" ]; then sudo certbot certonly --webroot -w /var/www/certbot -d \"$${API_DOMAIN}\" --non-interactive --agree-tos --email \"$${TLS_EMAIL}\" --keep-until-expiring; else sudo certbot certonly --webroot -w /var/www/certbot -d \"$${API_DOMAIN}\" --non-interactive --agree-tos --register-unsafely-without-email --keep-until-expiring; fi; fi",
+            "sudo tee /etc/nginx/conf.d/khaleo-api.conf >/dev/null <<EOF\nserver {\n    listen 80;\n    server_name $${API_DOMAIN};\n    return 301 https://\\$host\\$request_uri;\n}\n\nserver {\n    listen 443 ssl http2;\n    server_name $${API_DOMAIN};\n\n    ssl_certificate /etc/letsencrypt/live/$${API_DOMAIN}/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/$${API_DOMAIN}/privkey.pem;\n\n    location / {\n        proxy_pass http://127.0.0.1:$${BACKEND_PORT};\n        proxy_http_version 1.1;\n        proxy_set_header Host \\$host;\n        proxy_set_header X-Real-IP \\$remote_addr;\n        proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto \\$scheme;\n    }\n}\nEOF",
+            "sudo nginx -t",
+            "sudo systemctl reload nginx",
+            "sudo systemctl enable --now certbot-renew.timer || true",
+            "sudo systemctl is-active nginx"
+          ]
+        }
+      }
+    ]
+  })
+
+  tags = local.tags
 }
 
 resource "aws_db_subnet_group" "main" {
@@ -352,7 +420,7 @@ resource "aws_acm_certificate" "frontend" {
   provider                  = aws.us_east_1
   domain_name               = var.frontend_domain_name
   validation_method         = "DNS"
-  subject_alternative_names = []
+  subject_alternative_names = var.frontend_additional_domain_names
 
   lifecycle {
     create_before_destroy = true
@@ -390,7 +458,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   enabled             = true
   comment             = "${local.name_prefix} frontend"
   default_root_object = "index.html"
-  aliases             = var.enable_frontend_custom_domain ? [var.frontend_domain_name] : []
+  aliases             = var.enable_frontend_custom_domain ? concat([var.frontend_domain_name], var.frontend_additional_domain_names) : []
 
   origin {
     domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
@@ -472,10 +540,10 @@ resource "aws_s3_bucket_policy" "frontend" {
 }
 
 resource "aws_route53_record" "frontend_alias" {
-  count   = var.enable_frontend_custom_domain ? 1 : 0
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = var.frontend_domain_name
-  type    = "A"
+  for_each = var.enable_frontend_custom_domain ? toset(concat([var.frontend_domain_name], var.frontend_additional_domain_names)) : toset([])
+  zone_id  = data.aws_route53_zone.main.zone_id
+  name     = each.value
+  type     = "A"
 
   alias {
     name                   = aws_cloudfront_distribution.frontend.domain_name

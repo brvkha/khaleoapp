@@ -39,6 +39,35 @@ terraform -chdir="infra/terraform/app" init -reconfigure -backend-config="backen
 terraform -chdir="infra/terraform/app" apply -var-file="env/staging.tfvars"
 ```
 
+## 3.1) Deploy Staging via GitHub Actions (recommended)
+
+Workflow: `.github/workflows/terraform-staging.yml`
+
+- Trigger tu UI hoac CLI voi `action=apply|destroy|recreate`.
+- Workflow tu tao bootstrap tfvars + app backend config tu GitHub secrets.
+- Workflow chay `bootstrap apply` truoc de dam bao remote backend always available.
+
+CLI examples:
+
+```powershell
+gh workflow run terraform-staging.yml --ref develop -f action=apply -f auto_approve=true
+gh workflow run terraform-staging.yml --ref develop -f action=destroy -f auto_approve=true
+gh workflow run terraform-staging.yml --ref develop -f action=recreate -f auto_approve=true
+```
+
+Required staging secrets for workflow:
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `TF_STATE_BUCKET_STAGING`
+- `RDS_DB_PASSWORD`
+
+Optional staging secrets:
+
+- `TF_LOCK_TABLE_STAGING` (default `khaleoapp-terraform-lock`)
+- `TF_BACKEND_KEY_STAGING` (default `khaleoapp/staging/terraform.tfstate`)
+- `TLS_EMAIL_STAGING`
+
 ## 3.1) Local validate only (khong tao tai nguyen AWS)
 
 Neu chua co AWS credentials hoac muon check IaC truoc, chay:
