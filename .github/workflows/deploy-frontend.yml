@@ -2,35 +2,19 @@ name: Deploy Frontend
 
 on:
   workflow_call:
-    inputs:
-      target_environment:
-        description: Deployment environment (staging|prod)
-        required: true
-        type: string
   workflow_dispatch:
-    inputs:
-      target_environment:
-        description: Deployment environment
-        type: choice
-        required: true
-        default: staging
-        options:
-          - staging
-          - prod
 
 env:
   AWS_REGION: ap-southeast-1
   NODE_VERSION: '20'
-  STAGING_API_BASE_URL_DEFAULT: https://api-staging.khaleoshop.click
+  TARGET_ENV: prod
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.target_environment || github.event.inputs.target_environment || 'staging' }}
+    environment: prod
     permissions:
       contents: read
-    env:
-      TARGET_ENV: ${{ inputs.target_environment || github.event.inputs.target_environment || 'staging' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -49,19 +33,10 @@ jobs:
       - name: Build
         working-directory: frontend
         env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-        run: |
-          if [ -n "$VITE_API_BASE_URL" ]; then
-            echo "Using VITE_API_BASE_URL from secrets"
-          elif [ "${TARGET_ENV}" = "prod" ]; then
-            VITE_API_BASE_URL="https://api.khaleoshop.click"
-          else
-            VITE_API_BASE_URL="${{ env.STAGING_API_BASE_URL_DEFAULT }}"
-          fi
-          export VITE_API_BASE_URL
-          npm run build
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'https://api.khaleoshop.click' }}
+        run: npm run build
 
-      - name: Ensure staging API endpoint is baked into frontend bundle
+      - name: Ensure fallback endpoint is handled
         working-directory: frontend
         run: |
           if grep -R "localhost:8080" -n dist/assets; then
@@ -82,7 +57,7 @@ jobs:
           BUCKET="${{ secrets.S3_BUCKET }}"
           if [ -z "$BUCKET" ]; then
             ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-            BUCKET="khaleoapp-${TARGET_ENV}-frontend-${ACCOUNT_ID}"
+            BUCKET="khaleoapp-prod-frontend-${ACCOUNT_ID}"
             echo "Auto-discovered S3 bucket: $BUCKET"
           fi
           if [ -z "$BUCKET" ]; then
@@ -97,7 +72,7 @@ jobs:
           if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
             ARN=$(aws resourcegroupstaggingapi get-resources \
               --resource-type-filters cloudfront:distribution \
-              --tag-filters "Key=Project,Values=khaleoapp" "Key=Environment,Values=${TARGET_ENV}" \
+              --tag-filters "Key=Project,Values=khaleoapp" "Key=Environment,Values=prod" \
               --query 'ResourceTagMappingList[0].ResourceARN' \
               --output text)
             DIST_ID=${ARN##*/}
@@ -114,4 +89,4 @@ jobs:
       - name: Notify success
         if: success()
         run: |
-          echo "Frontend deployed to ${TARGET_ENV}"
+          echo "Frontend deployed to production"

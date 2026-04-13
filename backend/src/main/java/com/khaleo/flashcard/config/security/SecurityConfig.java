@@ -27,7 +27,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthExceptionHandler authExceptionHandler;
 
-    @Value("${app.security.cors.allowed-origins:https://api-staging.khaleoshop.click,https://khaleoshop.click,https://www.khaleoshop.click,http://localhost:5173,https://stage.khaleoshop.click,https://staging.khaleoshop.click,http://127.0.0.1:5173}")
+    @Value("${app.security.cors.allowed-origins:https://api.khaleoshop.click,https://khaleoshop.click,https://www.khaleoshop.click,http://localhost:5173,http://127.0.0.1:5173}")
     private String corsAllowedOrigins;
 
     @Bean
