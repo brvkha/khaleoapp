@@ -1,0 +1,81 @@
+name: Deploy Frontend
+
+on:
+  workflow_call:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-southeast-1
+  NODE_VERSION: '20'
+  STAGING_API_BASE_URL_DEFAULT: https://api-staging.khaleoshop.click
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL_STAGING }}
+        run: |
+          if [ -z "$VITE_API_BASE_URL" ]; then
+            VITE_API_BASE_URL="${{ env.STAGING_API_BASE_URL_DEFAULT }}"
+          fi
+          echo "Using VITE_API_BASE_URL=$VITE_API_BASE_URL"
+          export VITE_API_BASE_URL
+          npm run build
+
+      - name: Ensure staging API endpoint is baked into frontend bundle
+        working-directory: frontend
+        run: |
+          if grep -R "localhost:8080" -n dist/assets; then
+            echo "Build artifact still contains localhost:8080 fallback"
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync to S3
+        working-directory: frontend
+        run: |
+          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_STAGING }} --delete
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CF_DIST_ID_STAGING }} \
+            --paths "/*"
+
+      - name: Notify success
+        if: success()
+        run: |
+          echo "Frontend deployed to staging from develop"
+

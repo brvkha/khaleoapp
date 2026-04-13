@@ -1,0 +1,242 @@
+name: Deploy Backend
+
+on:
+  workflow_call:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-southeast-1
+  PROJECT_NAME: khaleoapp
+  DOCKER_IMAGE_NAME: brvkha/khaleoapp
+  JDK_VERSION: '17'
+  API_DOMAIN_DEFAULT: api-staging.khaleoshop.click
+  BACKEND_PORT: '8080'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JDK_VERSION }}
+          cache: 'maven'
+
+      - name: Build JAR
+        working-directory: backend
+        run: mvn -B -ntp clean package -DskipTests
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE_NAME }}:latest
+            ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache,mode=max
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: AWS preflight
+        run: |
+          set -e
+          echo "Region: ${{ env.AWS_REGION }}"
+          aws sts get-caller-identity
+
+      - name: Resolve staging EC2 instance id
+        id: resolve_instance
+        run: |
+          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID_STAGING }}"
+          INSTANCE_ID=$(echo "$INSTANCE_ID" | tr -d '\r' | xargs)
+
+          if [ -z "$INSTANCE_ID" ]; then
+            INSTANCE_ID=$(aws ec2 describe-instances \
+              --filters \
+                "Name=tag:Project,Values=${{ env.PROJECT_NAME }}" \
+                "Name=tag:Environment,Values=staging" \
+                "Name=instance-state-name,Values=running" \
+              --query 'Reservations[].Instances[].InstanceId | [0]' \
+              --output text)
+          fi
+
+          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            echo "Cannot resolve staging EC2 instance id. Set secret EC2_INSTANCE_ID_STAGING or verify tags Project/Environment."
+            exit 1
+          fi
+
+          INSTANCE_STATE=$(aws ec2 describe-instances \
+            --instance-ids "$INSTANCE_ID" \
+            --query 'Reservations[0].Instances[0].State.Name' \
+            --output text)
+
+          if [ "$INSTANCE_STATE" != "running" ]; then
+            echo "EC2 instance is not running: $INSTANCE_ID (state=$INSTANCE_STATE)"
+            exit 1
+          fi
+
+          SSM_PING=$(aws ssm describe-instance-information \
+            --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+            --query 'InstanceInformationList[0].PingStatus' \
+            --output text)
+
+          if [ "$SSM_PING" != "Online" ]; then
+            echo "EC2 instance is not SSM Online: $INSTANCE_ID (PingStatus=$SSM_PING)"
+            echo "Check IAM instance profile AmazonSSMManagedInstanceCore, SSM agent, and outbound internet/NAT access."
+            exit 1
+          fi
+
+          echo "instance_id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Bootstrap Nginx/TLS via SSM document
+        run: |
+            API_DOMAIN="${{ secrets.API_DOMAIN_STAGING }}"
+            if [ -z "$API_DOMAIN" ]; then
+              API_DOMAIN="${{ env.API_DOMAIN_DEFAULT }}"
+            fi
+
+            TLS_EMAIL="${{ secrets.TLS_EMAIL_STAGING }}"
+            DOCUMENT_NAME="${{ env.PROJECT_NAME }}-staging-nginx-tls-bootstrap"
+
+            if [ -n "$TLS_EMAIL" ]; then
+              NGINX_COMMAND_ID=$(aws ssm send-command \
+                --instance-ids "${{ steps.resolve_instance.outputs.instance_id }}" \
+                --document-name "$DOCUMENT_NAME" \
+                --comment "Bootstrap nginx/tls for $API_DOMAIN" \
+                --parameters "ApiDomain=$API_DOMAIN,BackendPort=${{ env.BACKEND_PORT }},TlsEmail=$TLS_EMAIL" \
+                --query "Command.CommandId" \
+                --output text)
+            else
+              NGINX_COMMAND_ID=$(aws ssm send-command \
+                --instance-ids "${{ steps.resolve_instance.outputs.instance_id }}" \
+                --document-name "$DOCUMENT_NAME" \
+                --comment "Bootstrap nginx/tls for $API_DOMAIN" \
+                --parameters "ApiDomain=$API_DOMAIN,BackendPort=${{ env.BACKEND_PORT }}" \
+                --query "Command.CommandId" \
+                --output text)
+            fi
+
+            if [ -z "$NGINX_COMMAND_ID" ] || [ "$NGINX_COMMAND_ID" = "None" ]; then
+              echo "Failed to create SSM command for nginx/tls bootstrap"
+              exit 1
+            fi
+
+            for i in {1..40}; do
+              STATUS=$(aws ssm list-command-invocations \
+                --command-id "$NGINX_COMMAND_ID" \
+                --details \
+                --query "CommandInvocations[0].Status" \
+                --output text)
+
+              echo "Nginx/TLS bootstrap status: $STATUS"
+
+              if [ "$STATUS" = "Success" ]; then
+                break
+              fi
+
+              if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
+                echo "Nginx/TLS bootstrap failed"
+                aws ssm list-command-invocations \
+                  --command-id "$NGINX_COMMAND_ID" \
+                  --details \
+                  --query "CommandInvocations[0].CommandPlugins[0].Output" \
+                  --output text
+                exit 1
+              fi
+
+              sleep 10
+            done
+
+      - name: Deploy backend container to EC2 via SSM
+        run: |
+            # 1. Tạo file JSON chứa các câu lệnh (Tránh lỗi thoát chuỗi và ký tự đặc biệt)
+            cat <<EOF > ssm_params.json
+            {
+              "commands": [
+                "set -e",
+                "docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}",
+                "docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
+                "docker stop khaleo-backend || true",
+                "docker rm khaleo-backend || true",
+                "docker run -d --restart unless-stopped --name khaleo-backend -p ${{ env.BACKEND_PORT }}:${{ env.BACKEND_PORT }} -e SPRING_PROFILES_ACTIVE=staging -e DB_HOST=${{ secrets.RDS_HOST_STAGING }} -e DB_NAME=${{ secrets.RDS_DB_NAME }} -e DB_USERNAME=${{ secrets.RDS_DB_USER }} -e DB_PASSWORD=${{ secrets.RDS_DB_PASSWORD }} -e JWT_SECRET=${{ secrets.JWT_SECRET_STAGING }} ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
+                "sleep 5",
+                "docker ps --filter name=khaleo-backend --format '{{.Names}} {{.Status}}'"
+              ]
+            }
+            EOF
+
+            # 2. Gửi lệnh SSM sử dụng file JSON vừa tạo
+            COMMAND_ID=$(aws ssm send-command \
+              --instance-ids "${{ steps.resolve_instance.outputs.instance_id }}" \
+              --document-name "AWS-RunShellScript" \
+              --comment "Deploy backend ${GITHUB_SHA}" \
+              --parameters file://ssm_params.json \
+              --query "Command.CommandId" \
+              --output text)
+
+            if [ -z "$COMMAND_ID" ] || [ "$COMMAND_ID" = "None" ]; then
+              echo "Failed to create SSM command for instance: ${{ steps.resolve_instance.outputs.instance_id }}"
+              exit 1
+            fi
+
+            echo "SSM command id: $COMMAND_ID"
+
+            # 3. Vòng lặp chờ kết quả (Giữ nguyên logic cũ của bạn)
+            for i in {1..30}; do
+              STATUS=$(aws ssm list-command-invocations \
+                --command-id "$COMMAND_ID" \
+                --details \
+                --query "CommandInvocations[0].Status" \
+                --output text)
+
+              echo "Current SSM status: $STATUS"
+
+              if [ "$STATUS" = "Success" ]; then
+                break
+              fi
+
+              if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
+                echo "SSM Command Failed!"
+                aws ssm list-command-invocations \
+                  --command-id "$COMMAND_ID" \
+                  --details \
+                  --query "CommandInvocations[0].CommandPlugins[0].Output" \
+                  --output text
+                exit 1
+              fi
+              sleep 10
+            done
+
+      - name: Notify success
+        if: success()
+        run: |
+          echo "Backend deployed to staging from develop"
+

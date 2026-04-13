@@ -1,0 +1,44 @@
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+
+# Java / backend
+backend/target/
+backend/build/
+backend/build-output/
+backend/temp-build/
+*.class
+*.jar
+
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+
+# Logs and env
+*.log
+.env
+.env.*
+!.env.example
+!.env.staging.example
+!frontend/.env.example
+!frontend/.env.staging.example
+
+# Local generated staging config (contains secrets)
+infra/terraform/bootstrap/terraform.tfvars
+infra/terraform/app/env/staging.tfvars
+docs/manual-e2e/staging-secrets.local.env
+frontend/.env.staging
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.tmp
+*.swp
