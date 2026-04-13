@@ -40,7 +40,7 @@ jobs:
       - name: Build
         working-directory: frontend
         env:
-          VITE_API_BASE_URL: ${{ github.ref == 'refs/heads/main' && secrets.VITE_API_BASE_URL_PROD || secrets.VITE_API_BASE_URL_STAGING }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
         run: |
           if [ -n "$VITE_API_BASE_URL" ]; then
             echo "Using VITE_API_BASE_URL from secrets"
@@ -70,12 +70,12 @@ jobs:
       - name: Sync to S3
         working-directory: frontend
         run: |
-          BUCKET="${{ github.ref == 'refs/heads/main' && secrets.S3_BUCKET_PROD || secrets.S3_BUCKET_STAGING }}"
+          BUCKET="${{ secrets.S3_BUCKET }}"
           aws s3 sync dist/ s3://${BUCKET} --delete
 
       - name: Invalidate CloudFront
         run: |
-          DIST_ID="${{ github.ref == 'refs/heads/main' && secrets.CF_DIST_ID_PROD || secrets.CF_DIST_ID_STAGING }}"
+          DIST_ID="${{ secrets.CF_DIST_ID }}"
           aws cloudfront create-invalidation \
             --distribution-id ${DIST_ID} \
             --paths "/*"
