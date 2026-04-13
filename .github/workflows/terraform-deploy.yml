@@ -179,7 +179,6 @@ jobs:
     uses: ./.github/workflows/deploy-frontend.yml
     with:
       target_environment: staging
-    secrets: inherit
 
   deploy_backend_staging:
     name: Phase 2 - Deploy Backend Staging
@@ -187,7 +186,6 @@ jobs:
     uses: ./.github/workflows/deploy-backend.yml
     with:
       target_environment: staging
-    secrets: inherit
 
   staging_ready:
     name: Phase 2 - Staging Completed
@@ -323,7 +321,6 @@ jobs:
     uses: ./.github/workflows/deploy-frontend.yml
     with:
       target_environment: prod
-    secrets: inherit
 
   deploy_backend_prod:
     name: Phase 3 - Deploy Backend Production
@@ -331,4 +328,3 @@ jobs:
     uses: ./.github/workflows/deploy-backend.yml
     with:
       target_environment: prod
-    secrets: inherit

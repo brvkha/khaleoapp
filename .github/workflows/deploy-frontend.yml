@@ -7,17 +7,6 @@ on:
         description: Deployment environment (staging|prod)
         required: true
         type: string
-    secrets:
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
-      S3_BUCKET:
-        required: true
-      CF_DIST_ID:
-        required: true
-      VITE_API_BASE_URL:
-        required: false
   workflow_dispatch:
     inputs:
       target_environment:

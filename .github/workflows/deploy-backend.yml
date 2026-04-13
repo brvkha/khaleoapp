@@ -7,31 +7,6 @@ on:
         description: Deployment environment (staging|prod)
         required: true
         type: string
-    secrets:
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
-      DOCKERHUB_USERNAME:
-        required: true
-      DOCKERHUB_TOKEN:
-        required: true
-      EC2_INSTANCE_ID:
-        required: false
-      API_DOMAIN:
-        required: false
-      TLS_EMAIL:
-        required: false
-      RDS_HOST:
-        required: true
-      RDS_DB_NAME:
-        required: true
-      RDS_DB_USER:
-        required: true
-      RDS_DB_PASSWORD:
-        required: true
-      JWT_SECRET:
-        required: true
   workflow_dispatch:
     inputs:
       target_environment:
