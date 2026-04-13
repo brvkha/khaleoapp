@@ -1,5 +1,6 @@
 resource "aws_s3_bucket" "tf_state" {
-  bucket = var.tf_state_bucket_name
+  bucket        = var.tf_state_bucket_name
+  force_destroy = true
 
   tags = {
     Project = var.project

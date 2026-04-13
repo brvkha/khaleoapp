@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.khaleo.flashcard.contract.RichCardContractTest
--------------------------------------------------------------------------------
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 39.79 s -- in com.khaleo.flashcard.contract.RichCardContractTest

@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - develop
+      - main
     paths:
       - 'frontend/**'
       - '.github/workflows/deploy-frontend.yml'
@@ -18,7 +19,7 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: staging
+    environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
     permissions:
       contents: read
     steps:
@@ -39,12 +40,15 @@ jobs:
       - name: Build
         working-directory: frontend
         env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL_STAGING }}
+          VITE_API_BASE_URL: ${{ github.ref == 'refs/heads/main' && secrets.VITE_API_BASE_URL_PROD || secrets.VITE_API_BASE_URL_STAGING }}
         run: |
-          if [ -z "$VITE_API_BASE_URL" ]; then
+          if [ -n "$VITE_API_BASE_URL" ]; then
+            echo "Using VITE_API_BASE_URL from secrets"
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            VITE_API_BASE_URL="https://api.khaleoshop.click"
+          else
             VITE_API_BASE_URL="${{ env.STAGING_API_BASE_URL_DEFAULT }}"
           fi
-          echo "Using VITE_API_BASE_URL=$VITE_API_BASE_URL"
           export VITE_API_BASE_URL
           npm run build
 
@@ -66,16 +70,17 @@ jobs:
       - name: Sync to S3
         working-directory: frontend
         run: |
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_STAGING }} --delete
+          BUCKET="${{ github.ref == 'refs/heads/main' && secrets.S3_BUCKET_PROD || secrets.S3_BUCKET_STAGING }}"
+          aws s3 sync dist/ s3://${BUCKET} --delete
 
       - name: Invalidate CloudFront
         run: |
+          DIST_ID="${{ github.ref == 'refs/heads/main' && secrets.CF_DIST_ID_PROD || secrets.CF_DIST_ID_STAGING }}"
           aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CF_DIST_ID_STAGING }} \
+            --distribution-id ${DIST_ID} \
             --paths "/*"
 
       - name: Notify success
         if: success()
         run: |
-          echo "Frontend deployed to staging from develop"
-
+          echo "Frontend deployed from ${{ github.ref_name }}"

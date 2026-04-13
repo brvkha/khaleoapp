@@ -49,6 +49,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [ -z "${{ secrets.TF_STATE_BUCKET_STAGING }}" ]; then
+            echo "Missing required secret: TF_STATE_BUCKET_STAGING"
+            exit 1
+          fi
+
           TF_LOCK_TABLE="${{ secrets.TF_LOCK_TABLE_STAGING }}"
           if [ -z "$TF_LOCK_TABLE" ]; then
             TF_LOCK_TABLE="khaleoapp-terraform-lock"
@@ -100,4 +105,4 @@ jobs:
         run: terraform destroy -input=false -auto-approve -var-file="env/ci.staging.tfvars"
 
       - name: Notify
-        run: echo "💀 Môi trường Staging đã bị xóa sổ hoàn toàn!"
+        run: echo "💀 Đã destroy app infra Staging. Terraform backend (S3 state + lock table) được giữ lại."
