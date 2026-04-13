@@ -15,6 +15,7 @@ env:
   AWS_REGION: ap-southeast-1
   PROJECT_NAME: khaleoapp
   TF_ENV: staging
+  TF_BOOTSTRAP_DIR: infra/terraform/bootstrap
   TF_APP_DIR: infra/terraform/app
   ROUTE53_ZONE_NAME: khaleoshop.click
   FRONTEND_DOMAIN_NAME: staging.khaleoshop.click
@@ -49,6 +50,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [ -z "${{ secrets.TF_STATE_BUCKET_STAGING }}" ]; then
+            echo "Missing required secret: TF_STATE_BUCKET_STAGING"
+            exit 1
+          fi
+
           TF_LOCK_TABLE="${{ secrets.TF_LOCK_TABLE_STAGING }}"
           if [ -z "$TF_LOCK_TABLE" ]; then
             TF_LOCK_TABLE="khaleoapp-terraform-lock"
@@ -58,6 +64,26 @@ jobs:
           if [ -z "$TF_BACKEND_KEY" ]; then
             TF_BACKEND_KEY="khaleoapp/staging/terraform.tfstate"
           fi
+
+          TF_BOOTSTRAP_BACKEND_KEY="${{ secrets.TF_BOOTSTRAP_BACKEND_KEY_STAGING }}"
+          if [ -z "$TF_BOOTSTRAP_BACKEND_KEY" ]; then
+            TF_BOOTSTRAP_BACKEND_KEY="khaleoapp/staging/bootstrap.tfstate"
+          fi
+
+          cat > "${TF_BOOTSTRAP_DIR}/ci.auto.tfvars" <<EOF
+          aws_region           = "${AWS_REGION}"
+          project              = "${PROJECT_NAME}"
+          tf_state_bucket_name = "${{ secrets.TF_STATE_BUCKET_STAGING }}"
+          tf_lock_table_name   = "${TF_LOCK_TABLE}"
+          EOF
+
+          cat > "${TF_BOOTSTRAP_DIR}/backend-staging.hcl" <<EOF
+          bucket         = "${{ secrets.TF_STATE_BUCKET_STAGING }}"
+          key            = "${TF_BOOTSTRAP_BACKEND_KEY}"
+          region         = "${AWS_REGION}"
+          dynamodb_table = "${TF_LOCK_TABLE}"
+          encrypt        = true
+          EOF
 
           cat > "${TF_APP_DIR}/backend-staging.hcl" <<EOF
           bucket         = "${{ secrets.TF_STATE_BUCKET_STAGING }}"
@@ -98,6 +124,46 @@ jobs:
       - name: Terraform App Destroy
         working-directory: ${{ env.TF_APP_DIR }}
         run: terraform destroy -input=false -auto-approve -var-file="env/ci.staging.tfvars"
+
+      - name: Terraform Bootstrap Init (remote)
+        shell: bash
+        run: |
+          set -euo pipefail
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" init -reconfigure -backend-config="backend-staging.hcl" -input=false
+
+      - name: Terraform Bootstrap Import Existing Resources
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TF_STATE_BUCKET="${{ secrets.TF_STATE_BUCKET_STAGING }}"
+          TF_LOCK_TABLE="${{ secrets.TF_LOCK_TABLE_STAGING }}"
+          if [ -z "$TF_LOCK_TABLE" ]; then
+            TF_LOCK_TABLE="khaleoapp-terraform-lock"
+          fi
+
+          import_if_exists() {
+            local address="$1"
+            local resource_id="$2"
+            terraform -chdir="${TF_BOOTSTRAP_DIR}" import -input=false "$address" "$resource_id" || true
+          }
+
+          import_if_exists "aws_s3_bucket.tf_state" "$TF_STATE_BUCKET"
+          import_if_exists "aws_s3_bucket_versioning.tf_state" "$TF_STATE_BUCKET"
+          import_if_exists "aws_s3_bucket_server_side_encryption_configuration.tf_state" "$TF_STATE_BUCKET"
+          import_if_exists "aws_s3_bucket_public_access_block.tf_state" "$TF_STATE_BUCKET"
+          import_if_exists "aws_dynamodb_table.tf_lock" "$TF_LOCK_TABLE"
+          import_if_exists 'aws_cloudwatch_log_group.ssm_session[0]' "/aws/ssm/${PROJECT_NAME}/session"
+          import_if_exists 'aws_ssm_document.session_preferences[0]' "SSM-SessionManagerRunShell"
+
+      - name: Terraform Bootstrap Destroy (local state for final teardown)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" state pull > "${TF_BOOTSTRAP_DIR}/terraform.tfstate" || true
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" init -reconfigure -backend=false -input=false
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" destroy -input=false -auto-approve -var-file="ci.auto.tfvars"
 
       - name: Notify
         run: echo "💀 Môi trường Staging đã bị xóa sổ hoàn toàn!"
