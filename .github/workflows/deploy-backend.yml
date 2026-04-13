@@ -2,15 +2,46 @@ name: Deploy Backend
 
 on:
   workflow_call:
-  push:
-    branches:
-      - develop
-      - main
-      - main
-    paths:
-      - 'backend/**'
-      - '.github/workflows/deploy-backend.yml'
+    inputs:
+      target_environment:
+        description: Deployment environment (staging|prod)
+        required: true
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+      EC2_INSTANCE_ID:
+        required: false
+      API_DOMAIN:
+        required: false
+      TLS_EMAIL:
+        required: false
+      RDS_HOST:
+        required: true
+      RDS_DB_NAME:
+        required: true
+      RDS_DB_USER:
+        required: true
+      RDS_DB_PASSWORD:
+        required: true
+      JWT_SECRET:
+        required: true
   workflow_dispatch:
+    inputs:
+      target_environment:
+        description: Deployment environment
+        type: choice
+        required: true
+        default: staging
+        options:
+          - staging
+          - prod
 
 env:
   AWS_REGION: ap-southeast-1
@@ -23,9 +54,11 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
+    environment: ${{ inputs.target_environment || github.event.inputs.target_environment || 'staging' }}
     permissions:
       contents: read
+    env:
+      TARGET_ENV: ${{ inputs.target_environment || github.event.inputs.target_environment || 'staging' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -84,7 +117,7 @@ jobs:
             INSTANCE_ID=$(aws ec2 describe-instances \
               --filters \
                 "Name=tag:Project,Values=${{ env.PROJECT_NAME }}" \
-                "Name=tag:Environment,Values=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}" \
+                "Name=tag:Environment,Values=${TARGET_ENV}" \
                 "Name=instance-state-name,Values=running" \
               --query 'Reservations[].Instances[].InstanceId | [0]' \
               --output text)
@@ -122,11 +155,15 @@ jobs:
         run: |
             API_DOMAIN="${{ secrets.API_DOMAIN }}"
             if [ -z "$API_DOMAIN" ]; then
-              API_DOMAIN="${{ env.API_DOMAIN_DEFAULT }}"
+              if [ "${TARGET_ENV}" = "prod" ]; then
+                API_DOMAIN="api.khaleoshop.click"
+              else
+                API_DOMAIN="${{ env.API_DOMAIN_DEFAULT }}"
+              fi
             fi
 
             TLS_EMAIL="${{ secrets.TLS_EMAIL }}"
-            DOCUMENT_NAME="${{ env.PROJECT_NAME }}-${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}-nginx-tls-bootstrap"
+            DOCUMENT_NAME="${{ env.PROJECT_NAME }}-${TARGET_ENV}-nginx-tls-bootstrap"
 
             if [ -n "$TLS_EMAIL" ]; then
               NGINX_COMMAND_ID=$(aws ssm send-command \
@@ -188,7 +225,7 @@ jobs:
                 "docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
                 "docker stop khaleo-backend || true",
                 "docker rm khaleo-backend || true",
-                "docker run -d --restart unless-stopped --name khaleo-backend -p ${{ env.BACKEND_PORT }}:${{ env.BACKEND_PORT }} -e SPRING_PROFILES_ACTIVE=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }} -e DB_HOST=${{ secrets.RDS_HOST }} -e DB_NAME=${{ secrets.RDS_DB_NAME }} -e DB_USERNAME=${{ secrets.RDS_DB_USER }} -e DB_PASSWORD=${{ secrets.RDS_DB_PASSWORD }} -e JWT_SECRET=${{ secrets.JWT_SECRET }} ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
+                "docker run -d --restart unless-stopped --name khaleo-backend -p ${{ env.BACKEND_PORT }}:${{ env.BACKEND_PORT }} -e SPRING_PROFILES_ACTIVE=${TARGET_ENV} -e DB_HOST=${{ secrets.RDS_HOST }} -e DB_NAME=${{ secrets.RDS_DB_NAME }} -e DB_USERNAME=${{ secrets.RDS_DB_USER }} -e DB_PASSWORD=${{ secrets.RDS_DB_PASSWORD }} -e JWT_SECRET=${{ secrets.JWT_SECRET }} ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
                 "sleep 5",
                 "docker ps --filter name=khaleo-backend --format '{{.Names}} {{.Status}}'"
               ]
@@ -240,4 +277,4 @@ jobs:
       - name: Notify success
         if: success()
         run: |
-          echo "Backend deployed to ${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }} from ${{ github.ref_name }}"
+          echo "Backend deployed to ${TARGET_ENV}"

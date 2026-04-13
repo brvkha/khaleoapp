@@ -769,6 +769,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Update runbook/scripts/docs to include new required secrets (`TF_STATE_BUCKET_STAGING`, optional lock/backend key overrides).
   - Added full-auto chain (2026-04-11): successful Terraform `apply`/`recreate` now calls `.github/workflows/deploy-frontend.yml` and `.github/workflows/deploy-backend.yml` via reusable workflow (`workflow_call`) in the same pipeline.
   - Added staging frontend API hardening (2026-04-11): frontend deploy workflow injects `VITE_API_BASE_URL` from `VITE_API_BASE_URL_STAGING` (fallback `https://api-staging.khaleoshop.click`) and fails build validation if `localhost:8080` is still present in built assets.
+  - Standardized release lane (2026-04-13): `.github/workflows/terraform-deploy.yml` is now the single main-branch flow (`main` only) with ordered phases `validate -> staging -> manual approval -> prod`, and Terraform jobs explicitly target `staging` first then `prod`.
 
 ---
 

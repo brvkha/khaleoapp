@@ -42,7 +42,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_connections" {
   alarm_description   = "This metric monitors rds connections"
 
   dimensions = {
-    DBInstanceIdentifier = aws_db_instance.db.id
+    DBInstanceIdentifier = aws_db_instance.main.id
   }
 
   alarm_actions = var.alert_email != "" ? [aws_sns_topic.alerts[0].arn] : []
@@ -62,7 +62,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_free_storage" {
   alarm_description   = "This metric monitors rds free storage space (under 1GB)"
 
   dimensions = {
-    DBInstanceIdentifier = aws_db_instance.db.id
+    DBInstanceIdentifier = aws_db_instance.main.id
   }
 
   alarm_actions = var.alert_email != "" ? [aws_sns_topic.alerts[0].arn] : []

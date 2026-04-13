@@ -1,35 +1,29 @@
-name: Infrastructure & App Deploy
+name: Main Deployment Pipeline
 
 on:
   push:
     branches:
-      - develop
       - main
     paths:
+      - 'frontend/**'
+      - 'backend/**'
       - 'infra/terraform/**'
       - '.github/workflows/terraform-deploy.yml'
+      - '.github/workflows/deploy-frontend.yml'
+      - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
     inputs:
-      action:
-        description: "Terraform action"
-        type: choice
+      deploy_production:
+        description: Deploy to production after successful staging and approval
         required: true
-        default: apply
-        options:
-          - apply
-          - destroy
-          - recreate
-      auto_approve:
-        description: "Apply/Destroy automatically without interactive approval"
         type: boolean
-        required: true
         default: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: terraform-deploy-${{ github.ref }}
+  group: main-deploy-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -40,12 +34,41 @@ env:
   ROUTE53_ZONE_NAME: khaleoshop.click
 
 jobs:
-  terraform_staging:
-    name: Terraform Staging
+  phase1_validate:
+    name: Phase 1 - Build and Test
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend tests
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run test
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Backend tests
+        working-directory: backend
+        run: mvn -B -ntp test
+
+  terraform_staging:
+    name: Phase 2 - Terraform Staging
+    runs-on: ubuntu-latest
+    needs: phase1_validate
     environment: staging
-    outputs:
-      should_trigger: ${{ steps.deploy_chain.outputs.should_trigger }}
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
@@ -56,37 +79,60 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      - name: Render CI tfvars and backend config
+
+      - name: Render staging CI tfvars and backend config
         run: |
           set -euo pipefail
-          TF_LOCK_TABLE=${{ secrets.TF_LOCK_TABLE }}
-          TF_BACKEND_KEY=${{ secrets.TF_BACKEND_KEY }}
-          TF_BOOTSTRAP_BACKEND_KEY=${{ secrets.TF_BOOTSTRAP_BACKEND_KEY }}
-          TLS_EMAIL=${{ secrets.TLS_EMAIL }}
-          
+
+          TF_STATE_BUCKET="${{ secrets.TF_STATE_BUCKET }}"
+          if [ -z "$TF_STATE_BUCKET" ]; then
+            echo "Missing Terraform state bucket secret for staging"
+            exit 1
+          fi
+
+          TF_LOCK_TABLE="${{ secrets.TF_LOCK_TABLE }}"
+          if [ -z "$TF_LOCK_TABLE" ]; then
+            TF_LOCK_TABLE="${PROJECT_NAME}-terraform-lock-staging"
+          fi
+
+          TF_BACKEND_KEY="${{ secrets.TF_BACKEND_KEY }}"
+          if [ -z "$TF_BACKEND_KEY" ]; then
+            TF_BACKEND_KEY="${PROJECT_NAME}/staging/terraform.tfstate"
+          fi
+
+          TF_BOOTSTRAP_BACKEND_KEY="${{ secrets.TF_BOOTSTRAP_BACKEND_KEY }}"
+          if [ -z "$TF_BOOTSTRAP_BACKEND_KEY" ]; then
+            TF_BOOTSTRAP_BACKEND_KEY="${PROJECT_NAME}/staging/bootstrap.tfstate"
+          fi
+
+          TLS_EMAIL="${{ secrets.TLS_EMAIL }}"
+          RDS_DB_NAME="${{ secrets.RDS_DB_NAME }}"
+          RDS_DB_USER="${{ secrets.RDS_DB_USER }}"
+          RDS_DB_PASSWORD="${{ secrets.RDS_DB_PASSWORD }}"
+
           cat > "${TF_BOOTSTRAP_DIR}/ci.auto.tfvars" <<EOF
           aws_region           = "${AWS_REGION}"
           project              = "${PROJECT_NAME}"
-          tf_state_bucket_name = "${{ secrets.TF_STATE_BUCKET }}"
+          tf_state_bucket_name = "${TF_STATE_BUCKET}"
           tf_lock_table_name   = "${TF_LOCK_TABLE}"
           EOF
-          
+
           cat > "${TF_BOOTSTRAP_DIR}/backend-staging.hcl" <<EOF
-          bucket         = "${{ secrets.TF_STATE_BUCKET }}"
+          bucket         = "${TF_STATE_BUCKET}"
           key            = "${TF_BOOTSTRAP_BACKEND_KEY}"
           region         = "${AWS_REGION}"
           dynamodb_table = "${TF_LOCK_TABLE}"
           encrypt        = true
           EOF
-          
+
           cat > "${TF_APP_DIR}/backend-staging.hcl" <<EOF
-          bucket         = "${{ secrets.TF_STATE_BUCKET }}"
+          bucket         = "${TF_STATE_BUCKET}"
           key            = "${TF_BACKEND_KEY}"
           region         = "${AWS_REGION}"
           dynamodb_table = "${TF_LOCK_TABLE}"
           encrypt        = true
           EOF
-          
+
           cat > "${TF_APP_DIR}/env/ci.staging.tfvars" <<EOF
           aws_region                    = "${AWS_REGION}"
           project                       = "${PROJECT_NAME}"
@@ -103,50 +149,70 @@ jobs:
           tls_email                     = "${TLS_EMAIL}"
           ec2_instance_type             = "t3.micro"
           db_instance_class             = "db.t3.micro"
-          db_name                       = "${{ secrets.RDS_DB_NAME }}"
-          db_username                   = "${{ secrets.RDS_DB_USER }}"
-          db_password                   = "${{ secrets.RDS_DB_PASSWORD }}"
+          db_name                       = "${RDS_DB_NAME}"
+          db_username                   = "${RDS_DB_USER}"
+          db_password                   = "${RDS_DB_PASSWORD}"
           db_backup_retention_days      = 7
           allowed_http_cidrs            = ["0.0.0.0/0"]
           enable_frontend_custom_domain = true
           EOF
 
-      - name: Terraform fmt and validate
+      - name: Terraform validate staging modules
         run: |
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" fmt -check -recursive
+          terraform -chdir="${TF_APP_DIR}" fmt -check -recursive
           terraform -chdir="${TF_BOOTSTRAP_DIR}" init -backend=false -input=false
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" validate
           terraform -chdir="${TF_APP_DIR}" init -backend=false -input=false
+          terraform -chdir="${TF_APP_DIR}" validate
 
-      - name: Terraform apply
+      - name: Terraform apply staging
         run: |
           terraform -chdir="${TF_BOOTSTRAP_DIR}" init -reconfigure -backend-config="backend-staging.hcl" -input=false
           terraform -chdir="${TF_BOOTSTRAP_DIR}" apply -input=false -auto-approve
           terraform -chdir="${TF_APP_DIR}" init -reconfigure -backend-config="backend-staging.hcl" -input=false
           terraform -chdir="${TF_APP_DIR}" apply -input=false -auto-approve -var-file="env/ci.staging.tfvars"
 
-      - name: Determine trigger
-        id: deploy_chain
-        run: echo "should_trigger=true" >> "$GITHUB_OUTPUT"
-
   deploy_frontend_staging:
+    name: Phase 2 - Deploy Frontend Staging
     needs: terraform_staging
-    if: ${{ needs.terraform_staging.outputs.should_trigger == 'true' }}
     uses: ./.github/workflows/deploy-frontend.yml
+    with:
+      target_environment: staging
     secrets: inherit
 
   deploy_backend_staging:
+    name: Phase 2 - Deploy Backend Staging
     needs: terraform_staging
-    if: ${{ needs.terraform_staging.outputs.should_trigger == 'true' }}
     uses: ./.github/workflows/deploy-backend.yml
+    with:
+      target_environment: staging
     secrets: inherit
 
-  terraform_prod:
-    name: Terraform Prod
-    needs: [deploy_frontend_staging, deploy_backend_staging]
-    if: github.ref == 'refs/heads/main'
+  staging_ready:
+    name: Phase 2 - Staging Completed
     runs-on: ubuntu-latest
+    needs: [deploy_frontend_staging, deploy_backend_staging]
+    steps:
+      - name: Confirm staging deployment
+        run: echo "Staging Terraform + app deployment completed successfully."
+
+  approval_production:
+    name: Manual Approval for Production
+    runs-on: ubuntu-latest
+    needs: staging_ready
+    if: ${{ github.event_name == 'push' || inputs.deploy_production == true }}
+    environment:
+      name: prod
+    steps:
+      - name: Wait for production approval
+        run: echo "Production approval granted."
+
+  terraform_prod:
+    name: Phase 3 - Terraform Production
+    runs-on: ubuntu-latest
+    needs: approval_production
     environment: prod
-    outputs:
-      should_trigger: ${{ steps.deploy_chain.outputs.should_trigger }}
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
@@ -157,45 +223,68 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      - name: Render CI tfvars and backend config
+
+      - name: Render production CI tfvars and backend config
         run: |
           set -euo pipefail
-          TF_LOCK_TABLE=${{ secrets.TF_LOCK_TABLE }}
-          TF_BACKEND_KEY=${{ secrets.TF_BACKEND_KEY }}
-          TF_BOOTSTRAP_BACKEND_KEY=${{ secrets.TF_BOOTSTRAP_BACKEND_KEY }}
-          TLS_EMAIL=${{ secrets.TLS_EMAIL }}
-          
+
+          TF_STATE_BUCKET="${{ secrets.TF_STATE_BUCKET }}"
+          if [ -z "$TF_STATE_BUCKET" ]; then
+            echo "Missing Terraform state bucket secret for production"
+            exit 1
+          fi
+
+          TF_LOCK_TABLE="${{ secrets.TF_LOCK_TABLE }}"
+          if [ -z "$TF_LOCK_TABLE" ]; then
+            TF_LOCK_TABLE="${PROJECT_NAME}-terraform-lock-prod"
+          fi
+
+          TF_BACKEND_KEY="${{ secrets.TF_BACKEND_KEY }}"
+          if [ -z "$TF_BACKEND_KEY" ]; then
+            TF_BACKEND_KEY="${PROJECT_NAME}/prod/terraform.tfstate"
+          fi
+
+          TF_BOOTSTRAP_BACKEND_KEY="${{ secrets.TF_BOOTSTRAP_BACKEND_KEY }}"
+          if [ -z "$TF_BOOTSTRAP_BACKEND_KEY" ]; then
+            TF_BOOTSTRAP_BACKEND_KEY="${PROJECT_NAME}/prod/bootstrap.tfstate"
+          fi
+
+          TLS_EMAIL="${{ secrets.TLS_EMAIL }}"
+          RDS_DB_NAME="${{ secrets.RDS_DB_NAME }}"
+          RDS_DB_USER="${{ secrets.RDS_DB_USER }}"
+          RDS_DB_PASSWORD="${{ secrets.RDS_DB_PASSWORD }}"
+
           cat > "${TF_BOOTSTRAP_DIR}/ci.auto.tfvars" <<EOF
           aws_region           = "${AWS_REGION}"
           project              = "${PROJECT_NAME}"
-          tf_state_bucket_name = "${{ secrets.TF_STATE_BUCKET }}"
+          tf_state_bucket_name = "${TF_STATE_BUCKET}"
           tf_lock_table_name   = "${TF_LOCK_TABLE}"
           EOF
-          
+
           cat > "${TF_BOOTSTRAP_DIR}/backend-prod.hcl" <<EOF
-          bucket         = "${{ secrets.TF_STATE_BUCKET }}"
+          bucket         = "${TF_STATE_BUCKET}"
           key            = "${TF_BOOTSTRAP_BACKEND_KEY}"
           region         = "${AWS_REGION}"
           dynamodb_table = "${TF_LOCK_TABLE}"
           encrypt        = true
           EOF
-          
+
           cat > "${TF_APP_DIR}/backend-prod.hcl" <<EOF
-          bucket         = "${{ secrets.TF_STATE_BUCKET }}"
+          bucket         = "${TF_STATE_BUCKET}"
           key            = "${TF_BACKEND_KEY}"
           region         = "${AWS_REGION}"
           dynamodb_table = "${TF_LOCK_TABLE}"
           encrypt        = true
           EOF
-          
+
           cat > "${TF_APP_DIR}/env/ci.prod.tfvars" <<EOF
           aws_region                    = "${AWS_REGION}"
           project                       = "${PROJECT_NAME}"
           environment                   = "prod"
-          vpc_cidr                      = "10.0.0.0/16"
-          public_subnet_cidr            = "10.0.1.0/24"
-          private_subnet_a_cidr         = "10.0.2.0/24"
-          private_subnet_b_cidr         = "10.0.3.0/24"
+          vpc_cidr                      = "10.1.0.0/16"
+          public_subnet_cidr            = "10.1.1.0/24"
+          private_subnet_a_cidr         = "10.1.2.0/24"
+          private_subnet_b_cidr         = "10.1.3.0/24"
           route53_zone_name             = "${ROUTE53_ZONE_NAME}"
           frontend_domain_name          = "${ROUTE53_ZONE_NAME}"
           frontend_additional_domain_names = ["www.${ROUTE53_ZONE_NAME}"]
@@ -204,38 +293,42 @@ jobs:
           tls_email                     = "${TLS_EMAIL}"
           ec2_instance_type             = "t3.micro"
           db_instance_class             = "db.t3.micro"
-          db_name                       = "${{ secrets.RDS_DB_NAME }}"
-          db_username                   = "${{ secrets.RDS_DB_USER }}"
-          db_password                   = "${{ secrets.RDS_DB_PASSWORD }}"
+          db_name                       = "${RDS_DB_NAME}"
+          db_username                   = "${RDS_DB_USER}"
+          db_password                   = "${RDS_DB_PASSWORD}"
           db_backup_retention_days      = 7
           allowed_http_cidrs            = ["0.0.0.0/0"]
           enable_frontend_custom_domain = true
           EOF
 
-      - name: Terraform fmt and validate
+      - name: Terraform validate production modules
         run: |
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" fmt -check -recursive
+          terraform -chdir="${TF_APP_DIR}" fmt -check -recursive
           terraform -chdir="${TF_BOOTSTRAP_DIR}" init -backend=false -input=false
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" validate
           terraform -chdir="${TF_APP_DIR}" init -backend=false -input=false
+          terraform -chdir="${TF_APP_DIR}" validate
 
-      - name: Terraform apply
+      - name: Terraform apply production
         run: |
           terraform -chdir="${TF_BOOTSTRAP_DIR}" init -reconfigure -backend-config="backend-prod.hcl" -input=false
           terraform -chdir="${TF_BOOTSTRAP_DIR}" apply -input=false -auto-approve
           terraform -chdir="${TF_APP_DIR}" init -reconfigure -backend-config="backend-prod.hcl" -input=false
           terraform -chdir="${TF_APP_DIR}" apply -input=false -auto-approve -var-file="env/ci.prod.tfvars"
 
-      - name: Determine trigger
-        id: deploy_chain
-        run: echo "should_trigger=true" >> "$GITHUB_OUTPUT"
-
   deploy_frontend_prod:
+    name: Phase 3 - Deploy Frontend Production
     needs: terraform_prod
-    if: ${{ needs.terraform_prod.outputs.should_trigger == 'true' }}
     uses: ./.github/workflows/deploy-frontend.yml
+    with:
+      target_environment: prod
     secrets: inherit
 
   deploy_backend_prod:
+    name: Phase 3 - Deploy Backend Production
     needs: terraform_prod
-    if: ${{ needs.terraform_prod.outputs.should_trigger == 'true' }}
     uses: ./.github/workflows/deploy-backend.yml
+    with:
+      target_environment: prod
     secrets: inherit
