@@ -235,7 +235,7 @@ jobs:
         (github.event_name == 'workflow_dispatch' && inputs.deploy_mode == 'full' && needs.staging_ready.result == 'success') ||
         (github.event_name == 'workflow_dispatch' && inputs.deploy_mode == 'prod_only' && needs.staging_bypass.result == 'success')
       )
-    }}
+      }}
     environment:
       name: prod
     steps:
