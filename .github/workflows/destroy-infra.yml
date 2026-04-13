@@ -49,23 +49,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -z "${{ secrets.TF_STATE_BUCKET_STAGING }}" ]; then
-            echo "Missing required secret: TF_STATE_BUCKET_STAGING"
+          if [ -z "${{ secrets.TF_STATE_BUCKET }}" ]; then
+            echo "Missing required secret: TF_STATE_BUCKET"
             exit 1
           fi
 
-          TF_LOCK_TABLE="${{ secrets.TF_LOCK_TABLE_STAGING }}"
+          TF_LOCK_TABLE="${{ secrets.TF_LOCK_TABLE }}"
           if [ -z "$TF_LOCK_TABLE" ]; then
             TF_LOCK_TABLE="khaleoapp-terraform-lock"
           fi
 
-          TF_BACKEND_KEY="${{ secrets.TF_BACKEND_KEY_STAGING }}"
+          TF_BACKEND_KEY="${{ secrets.TF_BACKEND_KEY }}"
           if [ -z "$TF_BACKEND_KEY" ]; then
             TF_BACKEND_KEY="khaleoapp/staging/terraform.tfstate"
           fi
 
           cat > "${TF_APP_DIR}/backend-staging.hcl" <<EOF
-          bucket         = "${{ secrets.TF_STATE_BUCKET_STAGING }}"
+          bucket         = "${{ secrets.TF_STATE_BUCKET }}"
           key            = "${TF_BACKEND_KEY}"
           region         = "${AWS_REGION}"
           dynamodb_table = "${TF_LOCK_TABLE}"
@@ -85,7 +85,7 @@ jobs:
           frontend_additional_domain_names = ["${FRONTEND_ADDITIONAL_DOMAIN_NAME}"]
           api_domain_name               = "${API_DOMAIN_NAME}"
           backend_container_port        = 8080
-          tls_email                     = "${{ secrets.TLS_EMAIL_STAGING }}"
+          tls_email                     = "${{ secrets.TLS_EMAIL }}"
           ec2_instance_type             = "t3.micro"
           db_instance_class             = "db.t3.micro"
           db_name                       = "${{ secrets.RDS_DB_NAME }}"
