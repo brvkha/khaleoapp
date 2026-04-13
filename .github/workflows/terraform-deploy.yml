@@ -223,21 +223,30 @@ jobs:
       - name: Confirm prod-only mode
         run: echo "Skipping Phase 1 + staging. Proceeding to production approval."
 
+  pre_production_gate:
+    name: Pre-Production Gate
+    runs-on: ubuntu-latest
+    needs: [staging_ready, staging_bypass]
+    if: always()
+    steps:
+      - name: Check staging completion
+        run: |
+          staging_ready_result="${{ needs.staging_ready.result }}"
+          staging_bypass_result="${{ needs.staging_bypass.result }}"
+          
+          if [[ "$staging_ready_result" == "success" || "$staging_bypass_result" == "success" ]]; then
+            echo "✅ Staging phase completed. Ready for production."
+            exit 0
+          else
+            echo "❌ Staging phase failed."
+            exit 1
+          fi
+
   approval_production:
      name: Manual Approval for Production
      runs-on: ubuntu-latest
-     needs: [staging_ready, staging_bypass]
-     if: ${{
-       (
-         (github.event_name == 'push' && needs.staging_ready.result == 'success') ||
-         (github.event_name == 'workflow_dispatch' && inputs.deploy_production == true && 
-           (
-             (inputs.deploy_mode == 'full' && needs.staging_ready.result == 'success') ||
-             (inputs.deploy_mode == 'prod_only' && needs.staging_bypass.result == 'success')
-           )
-         )
-       )
-       }}
+     needs: pre_production_gate
+     if: success()
      environment:
        name: prod
      steps:
