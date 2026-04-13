@@ -165,20 +165,29 @@ jobs:
 
           terraform -chdir="${TF_BOOTSTRAP_DIR}" init -input=false
 
+          # 🚀 Sửa hàm import: BỎ giấu lỗi (>/dev/null) để GitHub Actions in ra log rõ ràng.
           import_if_exists() {
             local address="$1"
             local resource_id="$2"
-            terraform -chdir="${TF_BOOTSTRAP_DIR}" import -input=false "$address" "$resource_id" >/dev/null 2>&1 || true
+            echo "------------------------------------------------"
+            echo "Attempting to import: $address"
+            echo "Resource ID: $resource_id"
+          
+            # Chạy import. Nếu thất bại (chưa tồn tại hoặc lỗi cú pháp), in cảnh báo nhưng không làm sập Pipeline.
+            terraform -chdir="${TF_BOOTSTRAP_DIR}" import -input=false "$address" "$resource_id" || echo "⚠️ Import failed or resource does not exist yet. Terraform apply will handle it."
           }
 
-          import_if_exists aws_s3_bucket.tf_state "$TF_STATE_BUCKET"
-          import_if_exists aws_s3_bucket_versioning.tf_state "$TF_STATE_BUCKET"
-          import_if_exists aws_s3_bucket_server_side_encryption_configuration.tf_state "$TF_STATE_BUCKET"
-          import_if_exists aws_s3_bucket_public_access_block.tf_state "$TF_STATE_BUCKET"
-          import_if_exists aws_dynamodb_table.tf_lock "$TF_LOCK_TABLE"
+          # Import resources (Lưu ý: Dùng dấu nháy đơn cho các resource có chứa index [0])
+          import_if_exists "aws_s3_bucket.tf_state" "$TF_STATE_BUCKET"
+          import_if_exists "aws_s3_bucket_versioning.tf_state" "$TF_STATE_BUCKET"
+          import_if_exists "aws_s3_bucket_server_side_encryption_configuration.tf_state" "$TF_STATE_BUCKET"
+          import_if_exists "aws_s3_bucket_public_access_block.tf_state" "$TF_STATE_BUCKET"
+          import_if_exists "aws_dynamodb_table.tf_lock" "$TF_LOCK_TABLE"
           import_if_exists 'aws_cloudwatch_log_group.ssm_session[0]' "/aws/ssm/${PROJECT_NAME}/session"
           import_if_exists 'aws_ssm_document.session_preferences[0]' "SSM-SessionManagerRunShell"
 
+          echo "------------------------------------------------"
+          echo "Running Bootstrap Apply..."
           terraform -chdir="${TF_BOOTSTRAP_DIR}" apply -input=false -auto-approve
 
       - name: Terraform app init
