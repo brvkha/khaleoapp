@@ -1,0 +1,241 @@
+name: Infrastructure & App Deploy
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'infra/terraform/**'
+      - '.github/workflows/terraform-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Terraform action"
+        type: choice
+        required: true
+        default: apply
+        options:
+          - apply
+          - destroy
+          - recreate
+      auto_approve:
+        description: "Apply/Destroy automatically without interactive approval"
+        type: boolean
+        required: true
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-southeast-1
+  PROJECT_NAME: khaleoapp
+  TF_BOOTSTRAP_DIR: infra/terraform/bootstrap
+  TF_APP_DIR: infra/terraform/app
+  ROUTE53_ZONE_NAME: khaleoshop.click
+
+jobs:
+  terraform_staging:
+    name: Terraform Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      should_trigger: ${{ steps.deploy_chain.outputs.should_trigger }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Render CI tfvars and backend config
+        run: |
+          set -euo pipefail
+          TF_LOCK_TABLE=${{ secrets.TF_LOCK_TABLE }}
+          TF_BACKEND_KEY=${{ secrets.TF_BACKEND_KEY }}
+          TF_BOOTSTRAP_BACKEND_KEY=${{ secrets.TF_BOOTSTRAP_BACKEND_KEY }}
+          TLS_EMAIL=${{ secrets.TLS_EMAIL }}
+          
+          cat > "${TF_BOOTSTRAP_DIR}/ci.auto.tfvars" <<EOF
+          aws_region           = "${AWS_REGION}"
+          project              = "${PROJECT_NAME}"
+          tf_state_bucket_name = "${{ secrets.TF_STATE_BUCKET }}"
+          tf_lock_table_name   = "${TF_LOCK_TABLE}"
+          EOF
+          
+          cat > "${TF_BOOTSTRAP_DIR}/backend-staging.hcl" <<EOF
+          bucket         = "${{ secrets.TF_STATE_BUCKET }}"
+          key            = "${TF_BOOTSTRAP_BACKEND_KEY}"
+          region         = "${AWS_REGION}"
+          dynamodb_table = "${TF_LOCK_TABLE}"
+          encrypt        = true
+          EOF
+          
+          cat > "${TF_APP_DIR}/backend-staging.hcl" <<EOF
+          bucket         = "${{ secrets.TF_STATE_BUCKET }}"
+          key            = "${TF_BACKEND_KEY}"
+          region         = "${AWS_REGION}"
+          dynamodb_table = "${TF_LOCK_TABLE}"
+          encrypt        = true
+          EOF
+          
+          cat > "${TF_APP_DIR}/env/ci.staging.tfvars" <<EOF
+          aws_region                    = "${AWS_REGION}"
+          project                       = "${PROJECT_NAME}"
+          environment                   = "staging"
+          vpc_cidr                      = "10.0.0.0/16"
+          public_subnet_cidr            = "10.0.1.0/24"
+          private_subnet_a_cidr         = "10.0.2.0/24"
+          private_subnet_b_cidr         = "10.0.3.0/24"
+          route53_zone_name             = "${ROUTE53_ZONE_NAME}"
+          frontend_domain_name          = "staging.${ROUTE53_ZONE_NAME}"
+          frontend_additional_domain_names = ["stage.${ROUTE53_ZONE_NAME}"]
+          api_domain_name               = "api-staging.${ROUTE53_ZONE_NAME}"
+          backend_container_port        = 8080
+          tls_email                     = "${TLS_EMAIL}"
+          ec2_instance_type             = "t3.micro"
+          db_instance_class             = "db.t3.micro"
+          db_name                       = "${{ secrets.RDS_DB_NAME }}"
+          db_username                   = "${{ secrets.RDS_DB_USER }}"
+          db_password                   = "${{ secrets.RDS_DB_PASSWORD }}"
+          db_backup_retention_days      = 7
+          allowed_http_cidrs            = ["0.0.0.0/0"]
+          enable_frontend_custom_domain = true
+          EOF
+
+      - name: Terraform fmt and validate
+        run: |
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" init -backend=false -input=false
+          terraform -chdir="${TF_APP_DIR}" init -backend=false -input=false
+
+      - name: Terraform apply
+        run: |
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" init -reconfigure -backend-config="backend-staging.hcl" -input=false
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" apply -input=false -auto-approve
+          terraform -chdir="${TF_APP_DIR}" init -reconfigure -backend-config="backend-staging.hcl" -input=false
+          terraform -chdir="${TF_APP_DIR}" apply -input=false -auto-approve -var-file="env/ci.staging.tfvars"
+
+      - name: Determine trigger
+        id: deploy_chain
+        run: echo "should_trigger=true" >> "$GITHUB_OUTPUT"
+
+  deploy_frontend_staging:
+    needs: terraform_staging
+    if: ${{ needs.terraform_staging.outputs.should_trigger == 'true' }}
+    uses: ./.github/workflows/deploy-frontend.yml
+    secrets: inherit
+
+  deploy_backend_staging:
+    needs: terraform_staging
+    if: ${{ needs.terraform_staging.outputs.should_trigger == 'true' }}
+    uses: ./.github/workflows/deploy-backend.yml
+    secrets: inherit
+
+  terraform_prod:
+    name: Terraform Prod
+    needs: [deploy_frontend_staging, deploy_backend_staging]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+    outputs:
+      should_trigger: ${{ steps.deploy_chain.outputs.should_trigger }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Render CI tfvars and backend config
+        run: |
+          set -euo pipefail
+          TF_LOCK_TABLE=${{ secrets.TF_LOCK_TABLE }}
+          TF_BACKEND_KEY=${{ secrets.TF_BACKEND_KEY }}
+          TF_BOOTSTRAP_BACKEND_KEY=${{ secrets.TF_BOOTSTRAP_BACKEND_KEY }}
+          TLS_EMAIL=${{ secrets.TLS_EMAIL }}
+          
+          cat > "${TF_BOOTSTRAP_DIR}/ci.auto.tfvars" <<EOF
+          aws_region           = "${AWS_REGION}"
+          project              = "${PROJECT_NAME}"
+          tf_state_bucket_name = "${{ secrets.TF_STATE_BUCKET }}"
+          tf_lock_table_name   = "${TF_LOCK_TABLE}"
+          EOF
+          
+          cat > "${TF_BOOTSTRAP_DIR}/backend-prod.hcl" <<EOF
+          bucket         = "${{ secrets.TF_STATE_BUCKET }}"
+          key            = "${TF_BOOTSTRAP_BACKEND_KEY}"
+          region         = "${AWS_REGION}"
+          dynamodb_table = "${TF_LOCK_TABLE}"
+          encrypt        = true
+          EOF
+          
+          cat > "${TF_APP_DIR}/backend-prod.hcl" <<EOF
+          bucket         = "${{ secrets.TF_STATE_BUCKET }}"
+          key            = "${TF_BACKEND_KEY}"
+          region         = "${AWS_REGION}"
+          dynamodb_table = "${TF_LOCK_TABLE}"
+          encrypt        = true
+          EOF
+          
+          cat > "${TF_APP_DIR}/env/ci.prod.tfvars" <<EOF
+          aws_region                    = "${AWS_REGION}"
+          project                       = "${PROJECT_NAME}"
+          environment                   = "prod"
+          vpc_cidr                      = "10.0.0.0/16"
+          public_subnet_cidr            = "10.0.1.0/24"
+          private_subnet_a_cidr         = "10.0.2.0/24"
+          private_subnet_b_cidr         = "10.0.3.0/24"
+          route53_zone_name             = "${ROUTE53_ZONE_NAME}"
+          frontend_domain_name          = "${ROUTE53_ZONE_NAME}"
+          frontend_additional_domain_names = ["www.${ROUTE53_ZONE_NAME}"]
+          api_domain_name               = "api.${ROUTE53_ZONE_NAME}"
+          backend_container_port        = 8080
+          tls_email                     = "${TLS_EMAIL}"
+          ec2_instance_type             = "t3.micro"
+          db_instance_class             = "db.t3.micro"
+          db_name                       = "${{ secrets.RDS_DB_NAME }}"
+          db_username                   = "${{ secrets.RDS_DB_USER }}"
+          db_password                   = "${{ secrets.RDS_DB_PASSWORD }}"
+          db_backup_retention_days      = 7
+          allowed_http_cidrs            = ["0.0.0.0/0"]
+          enable_frontend_custom_domain = true
+          EOF
+
+      - name: Terraform fmt and validate
+        run: |
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" init -backend=false -input=false
+          terraform -chdir="${TF_APP_DIR}" init -backend=false -input=false
+
+      - name: Terraform apply
+        run: |
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" init -reconfigure -backend-config="backend-prod.hcl" -input=false
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" apply -input=false -auto-approve
+          terraform -chdir="${TF_APP_DIR}" init -reconfigure -backend-config="backend-prod.hcl" -input=false
+          terraform -chdir="${TF_APP_DIR}" apply -input=false -auto-approve -var-file="env/ci.prod.tfvars"
+
+      - name: Determine trigger
+        id: deploy_chain
+        run: echo "should_trigger=true" >> "$GITHUB_OUTPUT"
+
+  deploy_frontend_prod:
+    needs: terraform_prod
+    if: ${{ needs.terraform_prod.outputs.should_trigger == 'true' }}
+    uses: ./.github/workflows/deploy-frontend.yml
+    secrets: inherit
+
+  deploy_backend_prod:
+    needs: terraform_prod
+    if: ${{ needs.terraform_prod.outputs.should_trigger == 'true' }}
+    uses: ./.github/workflows/deploy-backend.yml
+    secrets: inherit
