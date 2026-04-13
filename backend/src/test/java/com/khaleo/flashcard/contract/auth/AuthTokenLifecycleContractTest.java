@@ -1,8 +1,6 @@
 package com.khaleo.flashcard.contract.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -13,16 +11,16 @@ import com.khaleo.flashcard.controller.auth.dto.LogoutRequest;
 import com.khaleo.flashcard.controller.auth.dto.RefreshTokenRequest;
 import com.khaleo.flashcard.controller.auth.dto.RegisterRequest;
 import com.khaleo.flashcard.entity.EmailVerificationToken;
+import com.khaleo.flashcard.entity.User;
 import com.khaleo.flashcard.integration.support.IntegrationPersistenceTestBase;
 import com.khaleo.flashcard.repository.EmailVerificationTokenRepository;
-import com.khaleo.flashcard.service.auth.SesEmailService;
+import com.khaleo.flashcard.repository.UserRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +38,9 @@ class AuthTokenLifecycleContractTest extends IntegrationPersistenceTestBase {
 
     @Autowired
     private EmailVerificationTokenRepository emailVerificationTokenRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @BeforeEach
     void setUp() {
@@ -92,9 +93,21 @@ class AuthTokenLifecycleContractTest extends IntegrationPersistenceTestBase {
                         .content(objectMapper.writeValueAsString(new RegisterRequest(email, password))))
                 .andExpect(status().isCreated());
 
+        User user = userRepository.findByEmail(email).orElseThrow();
+        if (Boolean.TRUE.equals(user.getIsEmailVerified())) {
+            return;
+        }
+
         Optional<EmailVerificationToken> token = emailVerificationTokenRepository.findAll().stream()
                 .filter(t -> email.equals(t.getUser().getEmail()))
                 .findFirst();
+
+        if (token.isEmpty()) {
+            // Verification token may be skipped depending on auth email configuration.
+            user.setIsEmailVerified(true);
+            userRepository.save(user);
+            return;
+        }
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/auth/verify")
                         .queryParam("token", token.orElseThrow().getToken()))

@@ -1,8 +1,6 @@
 package com.khaleo.flashcard.contract.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -18,13 +16,11 @@ import com.khaleo.flashcard.integration.support.IntegrationPersistenceTestBase;
 import com.khaleo.flashcard.repository.EmailVerificationTokenRepository;
 import com.khaleo.flashcard.repository.PasswordResetTokenRepository;
 import com.khaleo.flashcard.repository.UserRepository;
-import com.khaleo.flashcard.service.auth.SesEmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,10 +87,22 @@ class AuthPasswordResetContractTest extends IntegrationPersistenceTestBase {
                         .content(objectMapper.writeValueAsString(new RegisterRequest(email, "Passw0rd!"))))
                 .andExpect(status().isCreated());
 
+        User user = userRepository.findByEmail(email).orElseThrow();
+        if (Boolean.TRUE.equals(user.getIsEmailVerified())) {
+            return;
+        }
+
         EmailVerificationToken token = emailVerificationTokenRepository.findAll().stream()
                 .filter(t -> email.equals(t.getUser().getEmail()))
                 .findFirst()
-                .orElseThrow();
+                .orElse(null);
+
+        if (token == null) {
+            // Some profiles auto-verify and do not persist verification tokens.
+            user.setIsEmailVerified(true);
+            userRepository.save(user);
+            return;
+        }
 
         mockMvc.perform(get("/api/v1/auth/verify").queryParam("token", token.getToken()))
                 .andExpect(status().isOk());

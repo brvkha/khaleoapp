@@ -771,6 +771,18 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Added staging frontend API hardening (2026-04-11): frontend deploy workflow injects `VITE_API_BASE_URL` from `VITE_API_BASE_URL_STAGING` (fallback `https://api-staging.khaleoshop.click`) and fails build validation if `localhost:8080` is still present in built assets.
   - Standardized release lane (2026-04-13): `.github/workflows/terraform-deploy.yml` is now the single main-branch flow (`main` only) with ordered phases `validate -> staging -> manual approval -> prod`, and Terraform jobs explicitly target `staging` first then `prod`.
 
+**TASK-2-CI-006: Backend test-stage stabilization for main pipeline**
+- Status: [X] DONE
+- Depends: TASK-2-CI-005
+- Owner: Backend Dev
+- Est: 1h
+- Description:
+  - Investigate Maven Surefire regressions causing backend CI failures.
+  - Fix auth contract tests to support both verification-required and auto-verified registration modes.
+  - Fix scheduler integration test context bootstrapping to use Testcontainers DB config.
+  - Update stale workflow and card contract assertions to match current implementation.
+  - Validate targeted failing suites pass (`failures=0`, `errors=0`) via Surefire XML.
+
 ---
 
 ### Layer 2.3: Staging Config

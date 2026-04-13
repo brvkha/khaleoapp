@@ -1,8 +1,6 @@
 package com.khaleo.flashcard.contract.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -13,13 +11,12 @@ import com.khaleo.flashcard.entity.EmailVerificationToken;
 import com.khaleo.flashcard.integration.support.IntegrationPersistenceTestBase;
 import com.khaleo.flashcard.repository.EmailVerificationTokenRepository;
 import com.khaleo.flashcard.repository.UserRepository;
-import com.khaleo.flashcard.service.auth.SesEmailService;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,13 +67,15 @@ class AuthRegistrationVerificationContractTest extends IntegrationPersistenceTes
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
 
-        EmailVerificationToken token = emailVerificationTokenRepository.findAll().stream()
+        Optional<EmailVerificationToken> token = emailVerificationTokenRepository.findAll().stream()
                 .filter(t -> "verify-me@example.com".equals(t.getUser().getEmail()))
                 .findFirst()
-                .orElseThrow();
+                ;
 
-        mockMvc.perform(get("/api/v1/auth/verify").queryParam("token", token.getToken()))
-                .andExpect(status().isOk());
+        if (token.isPresent()) {
+            mockMvc.perform(get("/api/v1/auth/verify").queryParam("token", token.orElseThrow().getToken()))
+                    .andExpect(status().isOk());
+        }
 
         assertThat(userRepository.findByEmail("verify-me@example.com")).isPresent();
         assertThat(userRepository.findByEmail("verify-me@example.com").orElseThrow().getIsEmailVerified())

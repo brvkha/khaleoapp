@@ -12,11 +12,11 @@ class DeployWorkflowContractTest {
     void shouldEncodeMainPushTriggerAndFailureOnAnyTarget() throws Exception {
         String workflow = Files.readString(Path.of("../.github/workflows/deploy-backend.yml"));
 
-//        assertThat(workflow).contains("push:");
-        assertThat(workflow).contains("main");
-        assertThat(workflow).contains("aws s3 cp");
+        assertThat(workflow).contains("workflow_call:");
+        assertThat(workflow).contains("target_environment");
+        assertThat(workflow).contains("docker/build-push-action");
         assertThat(workflow).contains("aws ssm send-command");
-        assertThat(workflow).contains("failed_targets");
+        assertThat(workflow).contains("Deploy backend container to EC2 via SSM");
         assertThat(workflow).contains("exit 1");
     }
 }

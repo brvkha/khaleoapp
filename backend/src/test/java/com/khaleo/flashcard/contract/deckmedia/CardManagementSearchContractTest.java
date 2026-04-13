@@ -107,7 +107,10 @@ class CardManagementSearchContractTest extends IntegrationPersistenceTestBase {
         Deck deck = createDeck(owner, "Deck", false);
         Card card = createCard(deck, "A", "B");
 
-        String body = objectMapper.writeValueAsString(Map.of("frontText", "Hacked"));
+        String body = objectMapper.writeValueAsString(Map.of(
+                "term", "Hacked",
+                "answer", "Still B",
+                "version", card.getVersion()));
 
         mockMvc.perform(put("/api/v1/cards/{id}", card.getId())
                         .header("Authorization", bearerFor(intruder))

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.khaleo.flashcard.entity.CardLearningState;
 import com.khaleo.flashcard.entity.enums.CardLearningStateType;
+import com.khaleo.flashcard.integration.support.IntegrationPersistenceTestBase;
 import com.khaleo.flashcard.model.dynamo.RatingGiven;
 import com.khaleo.flashcard.service.study.StudySchedulerService;
 import java.time.Instant;
@@ -12,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class StudySchedulerLegacyBehaviorIntegrationTest {
+class StudySchedulerLegacyBehaviorIntegrationTest extends IntegrationPersistenceTestBase {
 
     @Autowired
     private StudySchedulerService studySchedulerService;
