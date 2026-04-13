@@ -384,6 +384,7 @@ resource "aws_db_instance" "main" {
 
 resource "aws_s3_bucket" "frontend" {
   bucket = local.frontend_bucket_name
+  force_destroy = true
 
   tags = merge(local.tags, {
     Name = "${local.name_prefix}-frontend-bucket"
