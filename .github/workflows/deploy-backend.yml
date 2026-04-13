@@ -18,8 +18,6 @@ env:
   DOCKER_IMAGE_NAME: brvkha/khaleoapp
   JDK_VERSION: '17'
   API_DOMAIN_DEFAULT: api-staging.khaleoshop.click
-  API_DOMAIN_DEFAULT_PROD: api.khaleoshop.click
-  API_DOMAIN_DEFAULT_PROD: api.khaleoshop.click
   BACKEND_PORT: '8080'
 
 jobs:
@@ -93,7 +91,7 @@ jobs:
           fi
 
           if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
-            echo "Cannot resolve staging EC2 instance id. Set secret EC2_INSTANCE_ID_STAGING or verify tags Project/Environment."
+            echo "Cannot resolve staging EC2 instance id. Set secret EC2_INSTANCE_ID or verify tags Project/Environment."
             exit 1
           fi
 
@@ -243,4 +241,3 @@ jobs:
         if: success()
         run: |
           echo "Backend deployed to ${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }} from ${{ github.ref_name }}"
-
