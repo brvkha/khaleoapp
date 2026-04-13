@@ -191,6 +191,20 @@ jobs:
 
       - name: Deploy backend container to EC2 via SSM
         run: |
+            RDS_HOST="${{ secrets.RDS_HOST || secrets.RDS_HOST_STAGING || secrets.RDS_HOST_PROD }}"
+            if [ -z "$RDS_HOST" ]; then
+              RDS_HOST=$(aws rds describe-db-instances \
+                --filters "Name=db-instance-id,Values=${{ env.PROJECT_NAME }}-${TARGET_ENV}-db" \
+                --query 'DBInstances[0].Endpoint.Address' \
+                --output text)
+              echo "Auto-discovered RDS HOST: $RDS_HOST"
+            fi
+
+            RDS_DB_NAME="${{ secrets.RDS_DB_NAME || secrets.RDS_DB_NAME_STAGING || secrets.RDS_DB_NAME_PROD }}"
+            RDS_DB_USER="${{ secrets.RDS_DB_USER || secrets.RDS_DB_USER_STAGING || secrets.RDS_DB_USER_PROD }}"
+            RDS_DB_PASSWORD="${{ secrets.RDS_DB_PASSWORD || secrets.RDS_DB_PASSWORD_STAGING || secrets.RDS_DB_PASSWORD_PROD }}"
+            JWT_SECRET="${{ secrets.JWT_SECRET || secrets.JWT_SECRET_STAGING || secrets.JWT_SECRET_PROD }}"
+
             # 1. Tạo file JSON chứa các câu lệnh (Tránh lỗi thoát chuỗi và ký tự đặc biệt)
             cat <<EOF > ssm_params.json
             {
@@ -200,7 +214,7 @@ jobs:
                 "docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
                 "docker stop khaleo-backend || true",
                 "docker rm khaleo-backend || true",
-                "docker run -d --restart unless-stopped --name khaleo-backend -p ${{ env.BACKEND_PORT }}:${{ env.BACKEND_PORT }} -e SPRING_PROFILES_ACTIVE=${TARGET_ENV} -e DB_HOST=${{ secrets.RDS_HOST }} -e DB_NAME=${{ secrets.RDS_DB_NAME }} -e DB_USERNAME=${{ secrets.RDS_DB_USER }} -e DB_PASSWORD=${{ secrets.RDS_DB_PASSWORD }} -e JWT_SECRET=${{ secrets.JWT_SECRET }} ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
+                "docker run -d --restart unless-stopped --name khaleo-backend -p ${{ env.BACKEND_PORT }}:${{ env.BACKEND_PORT }} -e SPRING_PROFILES_ACTIVE=${TARGET_ENV} -e DB_HOST=${RDS_HOST} -e DB_NAME=${RDS_DB_NAME} -e DB_USERNAME=${RDS_DB_USER} -e DB_PASSWORD='${RDS_DB_PASSWORD}' -e JWT_SECRET='${JWT_SECRET}' ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
                 "sleep 5",
                 "docker ps --filter name=khaleo-backend --format '{{.Names}} {{.Status}}'"
               ]

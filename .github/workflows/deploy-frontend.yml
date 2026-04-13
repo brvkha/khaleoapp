@@ -80,11 +80,33 @@ jobs:
         working-directory: frontend
         run: |
           BUCKET="${{ secrets.S3_BUCKET }}"
+          if [ -z "$BUCKET" ]; then
+            ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+            BUCKET="khaleoapp-${TARGET_ENV}-frontend-${ACCOUNT_ID}"
+            echo "Auto-discovered S3 bucket: $BUCKET"
+          fi
+          if [ -z "$BUCKET" ]; then
+            echo "BUCKET is still empty"
+            exit 1
+          fi
           aws s3 sync dist/ s3://${BUCKET} --delete
 
       - name: Invalidate CloudFront
         run: |
           DIST_ID="${{ secrets.CF_DIST_ID }}"
+          if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
+            ARN=$(aws resourcegroupstaggingapi get-resources \
+              --resource-type-filters cloudfront:distribution \
+              --tag-filters "Key=Project,Values=khaleoapp" "Key=Environment,Values=${TARGET_ENV}" \
+              --query 'ResourceTagMappingList[0].ResourceARN' \
+              --output text)
+            DIST_ID=${ARN##*/}
+            echo "Auto-discovered CloudFront distribution: $DIST_ID"
+          fi
+          if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
+            echo "Could not resolve CloudFront distribution id."
+            exit 1
+          fi
           aws cloudfront create-invalidation \
             --distribution-id ${DIST_ID} \
             --paths "/*"
