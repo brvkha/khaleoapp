@@ -858,7 +858,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 3.1: Production AWS (copy of staging, prod domains)
 
 **TASK-3-INFRA-001: Prod VPC + Network**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-2-VALIDATE-003
 - Owner: DevOps
 - Est: 1h
@@ -867,7 +867,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Change tags, names to prod
 
 **TASK-3-INFRA-002: Prod RDS MySQL**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-3-INFRA-001
 - Owner: DevOps
 - Est: 0.5h
@@ -878,7 +878,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Encryption: true
 
 **TASK-3-INFRA-003: Prod EC2**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-3-INFRA-001
 - Owner: DevOps
 - Est: 0.5h
@@ -886,7 +886,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - t3.micro, same as staging
 
 **TASK-3-INFRA-004: Prod S3 + CloudFront**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-3-INFRA-001
 - Owner: DevOps
 - Est: 1h
@@ -896,7 +896,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - ACM: prod certificate
 
 **TASK-3-INFRA-005: Prod Route 53**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-3-INFRA-004
 - Owner: DevOps
 - Est: 0.5h
@@ -905,7 +905,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - api.khaleoshop.click → EC2 EIP
 
 **TASK-3-INFRA-006: Terraform Apply (Prod)**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-3-INFRA-005
 - Owner: DevOps
 - Est: 1h
@@ -918,7 +918,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 3.2: SSL/DNS & Nginx
 
 **TASK-3-SSL-001: ACM Certificates**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-3-INFRA-006
 - Owner: DevOps
 - Est: 0.5h
@@ -928,7 +928,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Note certificate ARN
 
 **TASK-3-SSL-002: Nginx SSL + Certbot (Prod EC2)**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-3-SSL-001
 - Owner: DevOps
 - Est: 1h
@@ -944,7 +944,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
 ### Layer 3.3: Secrets & Launch
 
 **TASK-3-SECRETS-001: GitHub Secrets (Prod)**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-3-SSL-002
 - Owner: DevOps
 - Est: 0.5h
@@ -953,7 +953,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Total 13 secrets
 
 **TASK-3-DEPLOY-001: Merge to main + Deploy**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-3-SECRETS-001
 - Owner: Backend + Frontend
 - Est: 1h
@@ -964,7 +964,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - Monitor Actions logs
 
 **TASK-3-VALIDATE-001: Production Smoke Test**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-3-DEPLOY-001
 - Owner: QA
 - Est: 2h
@@ -976,7 +976,7 @@ Format: `TASK-{Phase}{Layer}{Number}`
   - CloudWatch monitoring: no errors
 
 **TASK-3-MONITOR-001: Setup CloudWatch Alarms**
-- Status: TODO
+- Status: DONE
 - Depends: TASK-3-VALIDATE-001
 - Owner: DevOps
 - Est: 1h

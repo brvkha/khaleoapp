@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - develop
+      - main
+      - main
     paths:
       - 'backend/**'
       - '.github/workflows/deploy-backend.yml'
@@ -16,12 +18,14 @@ env:
   DOCKER_IMAGE_NAME: brvkha/khaleoapp
   JDK_VERSION: '17'
   API_DOMAIN_DEFAULT: api-staging.khaleoshop.click
+  API_DOMAIN_DEFAULT_PROD: api.khaleoshop.click
+  API_DOMAIN_DEFAULT_PROD: api.khaleoshop.click
   BACKEND_PORT: '8080'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: staging
+    environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
     permissions:
       contents: read
     steps:
@@ -75,14 +79,14 @@ jobs:
       - name: Resolve staging EC2 instance id
         id: resolve_instance
         run: |
-          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID_STAGING }}"
+          INSTANCE_ID="${{ github.ref == 'refs/heads/main' && secrets.EC2_INSTANCE_ID_PROD || secrets.EC2_INSTANCE_ID_STAGING }}"
           INSTANCE_ID=$(echo "$INSTANCE_ID" | tr -d '\r' | xargs)
 
           if [ -z "$INSTANCE_ID" ]; then
             INSTANCE_ID=$(aws ec2 describe-instances \
               --filters \
                 "Name=tag:Project,Values=${{ env.PROJECT_NAME }}" \
-                "Name=tag:Environment,Values=staging" \
+                "Name=tag:Environment,Values=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}" \
                 "Name=instance-state-name,Values=running" \
               --query 'Reservations[].Instances[].InstanceId | [0]' \
               --output text)
@@ -118,13 +122,13 @@ jobs:
 
       - name: Bootstrap Nginx/TLS via SSM document
         run: |
-            API_DOMAIN="${{ secrets.API_DOMAIN_STAGING }}"
+            API_DOMAIN="${{ github.ref == 'refs/heads/main' && secrets.API_DOMAIN_PROD || secrets.API_DOMAIN_STAGING }}"
             if [ -z "$API_DOMAIN" ]; then
               API_DOMAIN="${{ env.API_DOMAIN_DEFAULT }}"
             fi
 
-            TLS_EMAIL="${{ secrets.TLS_EMAIL_STAGING }}"
-            DOCUMENT_NAME="${{ env.PROJECT_NAME }}-staging-nginx-tls-bootstrap"
+            TLS_EMAIL="${{ github.ref == 'refs/heads/main' && secrets.TLS_EMAIL_PROD || secrets.TLS_EMAIL_STAGING }}"
+            DOCUMENT_NAME="${{ env.PROJECT_NAME }}-${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}-nginx-tls-bootstrap"
 
             if [ -n "$TLS_EMAIL" ]; then
               NGINX_COMMAND_ID=$(aws ssm send-command \
@@ -186,7 +190,7 @@ jobs:
                 "docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
                 "docker stop khaleo-backend || true",
                 "docker rm khaleo-backend || true",
-                "docker run -d --restart unless-stopped --name khaleo-backend -p ${{ env.BACKEND_PORT }}:${{ env.BACKEND_PORT }} -e SPRING_PROFILES_ACTIVE=staging -e DB_HOST=${{ secrets.RDS_HOST_STAGING }} -e DB_NAME=${{ secrets.RDS_DB_NAME }} -e DB_USERNAME=${{ secrets.RDS_DB_USER }} -e DB_PASSWORD=${{ secrets.RDS_DB_PASSWORD }} -e JWT_SECRET=${{ secrets.JWT_SECRET_STAGING }} ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
+                "docker run -d --restart unless-stopped --name khaleo-backend -p ${{ env.BACKEND_PORT }}:${{ env.BACKEND_PORT }} -e SPRING_PROFILES_ACTIVE=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }} -e DB_HOST=${{ github.ref == 'refs/heads/main' && secrets.RDS_HOST_PROD || secrets.RDS_HOST_STAGING }} -e DB_NAME=${{ secrets.RDS_DB_NAME }} -e DB_USERNAME=${{ secrets.RDS_DB_USER }} -e DB_PASSWORD=${{ secrets.RDS_DB_PASSWORD }} -e JWT_SECRET=${{ github.ref == 'refs/heads/main' && secrets.JWT_SECRET_PROD || secrets.JWT_SECRET_STAGING }} ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
                 "sleep 5",
                 "docker ps --filter name=khaleo-backend --format '{{.Names}} {{.Status}}'"
               ]
@@ -238,5 +242,5 @@ jobs:
       - name: Notify success
         if: success()
         run: |
-          echo "Backend deployed to staging from develop"
+          echo "Backend deployed to ${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }} from ${{ github.ref_name }}"
 

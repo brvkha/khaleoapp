@@ -109,9 +109,21 @@ variable "db_password" {
 }
 
 variable "db_backup_retention_days" {
-  description = "RDS backup retention period"
+  description = "Number of days to retain database backups"
   type        = number
   default     = 7
+}
+
+variable "enable_monitoring_alarms" {
+  description = "Enable CloudWatch alarms for EC2/RDS"
+  type        = bool
+  default     = false
+}
+
+variable "alert_email" {
+  description = "Email address for CloudWatch alarm notifications"
+  type        = string
+  default     = ""
 }
 
 variable "allowed_http_cidrs" {
@@ -137,4 +149,3 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 }
-
