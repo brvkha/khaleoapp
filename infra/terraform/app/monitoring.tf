@@ -58,8 +58,8 @@ resource "aws_cloudwatch_metric_alarm" "rds_free_storage" {
   period              = "300"
   statistic           = "Average"
   # 1GB in bytes = 1,073,741,824
-  threshold           = "1073741824"
-  alarm_description   = "This metric monitors rds free storage space (under 1GB)"
+  threshold         = "1073741824"
+  alarm_description = "This metric monitors rds free storage space (under 1GB)"
 
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.main.id
