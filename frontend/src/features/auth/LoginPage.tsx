@@ -6,7 +6,7 @@ import { useNotificationStore } from '../../store/notificationStore'
 
 export function LoginPage() {
   const [email, setEmail] = useState('khaleo@khaleo.app')
-  const [password, setPassword] = useState('khaleo')
+  const [password, setPassword] = useState('password123')
   const [error, setError] = useState('')
   const login = useAuthStore((state) => state.login)
   const currentUser = useAuthStore((state) => state.currentUser)
@@ -45,7 +45,7 @@ export function LoginPage() {
   return (
     <section className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
       <h1 className="text-2xl font-semibold">Login</h1>
-      <p className="mt-2 text-sm text-slate-600">Use an email containing admin to enter as admin.</p>
+      <p className="mt-2 text-sm text-slate-600">Sample Accounts (password: password123): <br/>- admin@khaleo.app (Admin) <br/>- khaleo@khaleo.app (User)<br/>- user@test.com (User)</p>
       <form className="mt-4 space-y-3" onSubmit={onSubmit}>
         <label className="block">
           <span className="text-sm">Email</span>
