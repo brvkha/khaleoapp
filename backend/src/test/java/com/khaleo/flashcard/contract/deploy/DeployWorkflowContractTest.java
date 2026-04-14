@@ -13,7 +13,7 @@ class DeployWorkflowContractTest {
         String workflow = Files.readString(Path.of("../.github/workflows/deploy-backend.yml"));
 
         assertThat(workflow).contains("workflow_call:");
-        assertThat(workflow).contains("target_environment");
+        assertThat(workflow).contains("TARGET_ENV");
         assertThat(workflow).contains("docker/build-push-action");
         assertThat(workflow).contains("aws ssm send-command");
         assertThat(workflow).contains("Deploy backend container to EC2 via SSM");
