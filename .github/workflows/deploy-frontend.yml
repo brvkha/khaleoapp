@@ -70,12 +70,9 @@ jobs:
         run: |
           DIST_ID="${{ secrets.CF_DIST_ID }}"
           if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
-            ARN=$(aws resourcegroupstaggingapi get-resources \
-              --resource-type-filters cloudfront:distribution \
-              --tag-filters "Key=Project,Values=khaleoapp" "Key=Environment,Values=prod" \
-              --query 'ResourceTagMappingList[0].ResourceARN' \
-              --output text)
-            DIST_ID=${ARN##*/}
+            # List all distributions and find the one that has the exact prod domain aliases
+            DOMAIN_TO_MATCH="khaleoshop.click"
+            DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items!=null] | [?contains(Aliases.Items, '${DOMAIN_TO_MATCH}')].Id | [0]" --output text)
             echo "Auto-discovered CloudFront distribution: $DIST_ID"
           fi
           if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
