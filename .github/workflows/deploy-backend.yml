@@ -179,7 +179,7 @@ jobs:
             RDS_DB_NAME="${{ secrets.RDS_DB_NAME || secrets.RDS_DB_NAME_PROD }}"
             RDS_DB_USER="${{ secrets.RDS_DB_USER || secrets.RDS_DB_USER_PROD }}"
             RDS_DB_PASSWORD="${{ secrets.RDS_DB_PASSWORD || secrets.RDS_DB_PASSWORD_PROD }}"
-            JWT_SECRET="${{ secrets.JWT_SECRET || secrets.JWT_SECRET_PROD }}"
+            JWT_SECRET="${{ secrets.JWT_SECRET || secrets.JWT_SECRET_PROD || 'khaleoapp-default-secure-jwt-secret-for-fallback-32-bytes' }}"
 
             cat <<EOF > ssm_params.json
             {
