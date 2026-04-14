@@ -151,6 +151,9 @@ jobs:
           enable_frontend_custom_domain = true
           enable_monitoring_alarms      = true
           EOF
+          
+          terraform -chdir="${TF_APP_DIR}" fmt
+          terraform -chdir="${TF_BOOTSTRAP_DIR}" fmt
 
       - name: Terraform validate production modules
         run: |
