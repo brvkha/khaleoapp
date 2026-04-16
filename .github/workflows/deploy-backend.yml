@@ -173,20 +173,52 @@ jobs:
             done
 
       - name: Deploy backend container to EC2 via SSM
+        env:
+          DB_SECRET_ID: ${{ vars.DB_SECRET_ID }}
+          JWT_SECRET_ID: ${{ vars.JWT_SECRET_ID }}
+          SES_SECRET_ID: ${{ vars.SES_SECRET_ID }}
+          RUNTIME_ENV_PATH: ${{ vars.RUNTIME_ENV_PATH }}
         run: |
              RDS_HOST="${{ secrets.RDS_HOST || secrets.RDS_HOST_PROD }}"
+             RDS_DB_NAME="${{ secrets.RDS_DB_NAME || secrets.RDS_DB_NAME_PROD }}"
+             RDS_DB_USER="${{ secrets.RDS_DB_USER || secrets.RDS_DB_USER_PROD }}"
+             RDS_DB_PASSWORD="${{ secrets.RDS_DB_PASSWORD || secrets.RDS_DB_PASSWORD_PROD }}"
+             JWT_SECRET="${{ secrets.JWT_SECRET || secrets.JWT_SECRET_PROD || 'khaleoapp-default-secure-jwt-secret-for-fallback-32-bytes' }}"
+             RUNTIME_PATH="${RUNTIME_ENV_PATH:-/opt/khaleo/flashcard-backend/runtime-secrets.env}"
+
+             if [ -n "${DB_SECRET_ID:-}" ]; then
+               DB_SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$DB_SECRET_ID" --query SecretString --output text)
+               [ -z "$RDS_HOST" ] && RDS_HOST=$(echo "$DB_SECRET_JSON" | jq -r '.host // empty')
+               [ -z "$RDS_DB_NAME" ] && RDS_DB_NAME=$(echo "$DB_SECRET_JSON" | jq -r '.dbname // .database // empty')
+               [ -z "$RDS_DB_USER" ] && RDS_DB_USER=$(echo "$DB_SECRET_JSON" | jq -r '.username // empty')
+               [ -z "$RDS_DB_PASSWORD" ] && RDS_DB_PASSWORD=$(echo "$DB_SECRET_JSON" | jq -r '.password // empty')
+             fi
+
              if [ -z "$RDS_HOST" ]; then
                RDS_HOST=$(aws rds describe-db-instances \
                  --filters "Name=db-instance-id,Values=${{ env.PROJECT_NAME }}-prod-db" \
                  --query 'DBInstances[0].Endpoint.Address' \
                  --output text)
-               echo "Auto-discovered RDS HOST: $RDS_HOST"
              fi
 
-             RDS_DB_NAME="${{ secrets.RDS_DB_NAME || secrets.RDS_DB_NAME_PROD }}"
-             RDS_DB_USER="${{ secrets.RDS_DB_USER || secrets.RDS_DB_USER_PROD }}"
-             RDS_DB_PASSWORD="${{ secrets.RDS_DB_PASSWORD || secrets.RDS_DB_PASSWORD_PROD }}"
-             JWT_SECRET="${{ secrets.JWT_SECRET || secrets.JWT_SECRET_PROD || 'khaleoapp-default-secure-jwt-secret-for-fallback-32-bytes' }}"
+             if [ -z "$RDS_DB_NAME" ]; then
+               RDS_DB_NAME=$(aws rds describe-db-instances \
+                 --filters "Name=db-instance-id,Values=${{ env.PROJECT_NAME }}-prod-db" \
+                 --query 'DBInstances[0].DBName' \
+                 --output text)
+             fi
+
+             if [ -n "${JWT_SECRET_ID:-}" ] && [ "$JWT_SECRET" = "khaleoapp-default-secure-jwt-secret-for-fallback-32-bytes" ]; then
+               JWT_SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$JWT_SECRET_ID" --query SecretString --output text)
+               JWT_SECRET=$(echo "$JWT_SECRET_JSON" | jq -r '.secret // .jwt_secret // .value // empty')
+             fi
+
+             for required in RDS_HOST RDS_DB_NAME RDS_DB_USER RDS_DB_PASSWORD JWT_SECRET; do
+               if [ -z "${!required:-}" ] || [ "${!required}" = "None" ]; then
+                 echo "Missing required runtime value: ${required}"
+                 exit 1
+               fi
+             done
 
              RUNTIME_ENV_B64=$(printf 'DB_URL=jdbc:mysql://%s:3306/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC\nDB_USERNAME=%s\nDB_PASSWORD=%s\nJWT_SECRET=%s\n' \
                "$RDS_HOST" "$RDS_DB_NAME" "$RDS_DB_USER" "$RDS_DB_PASSWORD" "$JWT_SECRET" | base64 | tr -d '\r\n')
@@ -199,13 +231,13 @@ jobs:
                "commands": [
                  "set -euo pipefail",
                  "mkdir -p /opt/khaleo/flashcard-backend",
-                 "printf '%s' '${RUNTIME_ENV_B64}' | base64 -d > /opt/khaleo/flashcard-backend/runtime-secrets.env",
-                 "chmod 600 /opt/khaleo/flashcard-backend/runtime-secrets.env",
+                 "printf '%s' '${RUNTIME_ENV_B64}' | base64 -d > ${RUNTIME_PATH}",
+                 "chmod 600 ${RUNTIME_PATH}",
                  "echo '=== Deploying Backend ===' && date",
                  "docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}",
                  "docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
                  "docker stop khaleo-backend 2>/dev/null || true && docker rm khaleo-backend 2>/dev/null || true",
-                 "docker run -d --restart unless-stopped --name khaleo-backend -p 8080:8080 --env-file /opt/khaleo/flashcard-backend/runtime-secrets.env -e SPRING_PROFILES_ACTIVE=production -e SPRING_JPA_HIBERNATE_DDL_AUTO=validate ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
+                 "docker run -d --restart unless-stopped --name khaleo-backend -p 8080:8080 --env-file ${RUNTIME_PATH} -e SPRING_PROFILES_ACTIVE=production -e SPRING_JPA_HIBERNATE_DDL_AUTO=validate ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
                  "sleep 15",
                  "echo 'Container Status:' && docker ps -a --filter name=khaleo-backend",
                  "echo 'Container Logs:' && docker logs --tail 100 khaleo-backend 2>&1",
@@ -214,8 +246,7 @@ jobs:
              }
              EOF
 
-             echo "=== Deployment Config ==="
-             cat /tmp/deploy_params.json
+             echo "Runtime secrets prepared (host/db/user/jwt presence validated)."
 
              COMMAND_ID=$(aws ssm send-command \
                --instance-ids "${{ steps.resolve_instance.outputs.instance_id }}" \
