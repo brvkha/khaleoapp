@@ -7,6 +7,7 @@ import {
   type StudyRatingPreviewsDto,
   type StudySessionCardDto,
 } from '../../services/studySessionApi'
+import { useFolderStore } from '../../store/folderStore'
 import { RichCardContent } from './RichCardContent'
 
 type UiRating = 'Again' | 'Hard' | 'Good' | 'Easy'
@@ -46,7 +47,10 @@ export function StudySessionPage() {
   const { deckId } = useParams<{ deckId: string }>()
   const navigate = useNavigate()
   const location = useLocation()
-  const deckName = (location.state as { deckName?: string } | null)?.deckName
+  const breadcrumb = (location.state as { deckName?: string; breadcrumb?: string } | null)?.breadcrumb
+
+  const nodes = useFolderStore((state) => state.nodes)
+  const getBreadcrumb = useFolderStore((state) => state.getBreadcrumb)
 
   const [cards, setCards] = useState<StudySessionCardDto[]>([])
   const [loading, setLoading] = useState(false)
@@ -56,6 +60,22 @@ export function StudySessionPage() {
   const [shownAt, setShownAt] = useState<number>(Date.now())
   const [ratingPreview, setRatingPreview] = useState<StudyRatingPreviewsDto | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+  const [studyStarted, setStudyStarted] = useState(false)
+
+  // Find deck in tree
+  const findNodeById = (id: string, nodeList: typeof nodes): typeof nodes[0] | null => {
+    for (const node of nodeList) {
+      if (node.id === id) return node
+      if (node.children.length > 0) {
+        const found = findNodeById(id, node.children)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  const currentDeck = deckId ? findNodeById(deckId, nodes) : null
+  const computedBreadcrumb = deckId ? getBreadcrumb(deckId) : []
 
   const current = useMemo(() => cards[0], [cards])
 
@@ -79,8 +99,11 @@ export function StudySessionPage() {
   }, [deckId])
 
   useEffect(() => {
-    void refresh()
-  }, [refresh])
+    // Only load cards when study starts
+    if (studyStarted) {
+      void refresh()
+    }
+  }, [refresh, studyStarted])
 
   useEffect(() => {
     if (loading || cards.length > 0) {
@@ -152,62 +175,119 @@ export function StudySessionPage() {
 
   return (
     <section className="h-[calc(100vh-11rem)] min-h-[500px] overflow-hidden">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <h1 className="text-2xl font-semibold">Study Session</h1>
         <button className="rounded border border-slate-300 px-3 py-2" onClick={() => navigate('/flashcard/study')}>
-          Back to study workspace
+          ← Back
         </button>
       </div>
 
-      {deckName ? <p className="mt-2 text-sm text-slate-600">Name: {deckName}</p> : null}
+      {/* Detail Panel - Show before study starts */}
+      {!studyStarted && currentDeck ? (
+        <div className="rounded border border-slate-200 bg-white p-4">
+          <div className="space-y-4 p-4">
+            {/* Breadcrumb */}
+            <p className="text-sm text-slate-500">
+              {computedBreadcrumb.length > 0 ? (
+                computedBreadcrumb.map((item, idx) => (
+                  <span key={item.id}>
+                    {idx > 0 && ' > '}
+                    {item.name}
+                  </span>
+                ))
+              ) : breadcrumb ? (
+                breadcrumb
+              ) : (
+                'Unknown path'
+              )}
+            </p>
 
-      {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
-      {loading ? <p className="mt-3 text-sm text-slate-500">Loading session...</p> : null}
+            <h2 className="truncate text-2xl font-semibold text-slate-900">{currentDeck.name}</h2>
 
-      {!loading && !current ? (
-        <p className="mt-4 rounded border border-emerald-200 bg-emerald-50 p-4">
-          Session complete. No due cards right now.
-        </p>
-      ) : null}
-
-      {current ? (
-        <article className="mt-3 h-[calc(100%-4rem)] rounded border border-slate-200 bg-white p-4">
-
-          <div className="mt-3">
-            <button
-              aria-label={revealed ? 'Flashcard back side' : 'Flashcard front side'}
-              className="w-full rounded-2xl text-left"
-              onClick={() => setRevealed(true)}
-              type="button"
-            >
-              <div className="rounded-3xl border border-slate-300 bg-gradient-to-br from-white to-slate-100 p-6 shadow-sm">
-                <RichCardContent card={current} revealed={revealed} />
+            {/* Card Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="rounded-lg bg-blue-50 p-4">
+                <p className="text-sm font-medium text-slate-600">Mới</p>
+                <p className="mt-2 text-2xl font-bold text-blue-600">{currentDeck.newCards}</p>
               </div>
+              <div className="rounded-lg bg-orange-50 p-4">
+                <p className="text-sm font-medium text-slate-600">Đang học</p>
+                <p className="mt-2 text-2xl font-bold text-orange-600">{currentDeck.learningCards}</p>
+              </div>
+              <div className="rounded-lg bg-green-50 p-4">
+                <p className="text-sm font-medium text-slate-600">Cần ôn</p>
+                <p className="mt-2 text-2xl font-bold text-green-600">{currentDeck.masteredCards}</p>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 pt-4">
+              <p className="text-sm text-slate-600">
+                Tổng card: <span className="font-semibold text-slate-900">{currentDeck.totalCards}</span>
+              </p>
+            </div>
+
+            {/* Study Button */}
+            <button
+              onClick={() => setStudyStarted(true)}
+              className="w-full rounded-lg bg-blue-500 px-4 py-3 font-medium text-white hover:bg-blue-600"
+            >
+              Học Bây giờ
             </button>
           </div>
-
-          {revealed ? (
-            <div className="study-rating-bar mt-5 flex flex-wrap gap-3">
-              {uiRatings.map((value) => (
-                <div key={value} className="flex flex-col items-center">
-                  <button
-                    className="min-w-20 rounded border border-slate-300 px-3 py-2 text-center disabled:opacity-50"
-                    onClick={() => void onRate(value)}
-                    disabled={rating}
-                  >
-                    {value}
-                  </button>
-                  <p className="mt-1 text-xs font-medium text-slate-500">
-                    {getPreviewLabel(value)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-slate-500">Tap the card to reveal answer and rating buttons.</p>
-          )}
-        </article>
+        </div>
       ) : null}
+
+      {/* Flashcard Study - Show after study starts */}
+      {studyStarted && (
+        <>
+          {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
+          {loading ? <p className="mt-3 text-sm text-slate-500">Loading session...</p> : null}
+
+          {!loading && !current ? (
+            <p className="mt-4 rounded border border-emerald-200 bg-emerald-50 p-4">
+              Session complete. No due cards right now.
+            </p>
+          ) : null}
+
+          {current ? (
+            <article className="mt-3 h-[calc(100%-4rem)] rounded border border-slate-200 bg-white p-4">
+              <div className="mt-3">
+                <button
+                  aria-label={revealed ? 'Flashcard back side' : 'Flashcard front side'}
+                  className="w-full rounded-2xl text-left"
+                  onClick={() => setRevealed(true)}
+                  type="button"
+                >
+                  <div className="rounded-3xl border border-slate-300 bg-gradient-to-br from-white to-slate-100 p-6 shadow-sm">
+                    <RichCardContent card={current} revealed={revealed} />
+                  </div>
+                </button>
+              </div>
+
+              {revealed ? (
+                <div className="study-rating-bar mt-5 flex flex-wrap gap-3">
+                  {uiRatings.map((value) => (
+                    <div key={value} className="flex flex-col items-center">
+                      <button
+                        className="min-w-20 rounded border border-slate-300 px-3 py-2 text-center disabled:opacity-50"
+                        onClick={() => void onRate(value)}
+                        disabled={rating}
+                      >
+                        {value}
+                      </button>
+                      <p className="mt-1 text-xs font-medium text-slate-500">
+                        {getPreviewLabel(value)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-slate-500">Tap the card to reveal answer and rating buttons.</p>
+              )}
+            </article>
+          ) : null}
+        </>
+      )}
     </section>
   )
 }

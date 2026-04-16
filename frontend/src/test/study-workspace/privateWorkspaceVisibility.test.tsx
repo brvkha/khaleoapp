@@ -40,21 +40,21 @@ describe('StudyWorkspacePage', () => {
     })
   })
 
-  it('navigates to deck detail page when folder is clicked', async () => {
+  it('navigates to study session detail when folder is clicked', async () => {
     const user = userEvent.setup()
 
     render(
       <MemoryRouter initialEntries={['/flashcard/study']}>
         <Routes>
           <Route element={<StudyWorkspacePage />} path="/flashcard/study" />
-          <Route element={<div>Deck Detail Page</div>} path="/flashcard/study/deck/:deckId" />
+          <Route element={<div>Study Session Page</div>} path="/flashcard/study/session/:deckId" />
         </Routes>
       </MemoryRouter>,
     )
 
-    // Click on folder to navigate to detail
+    // Click on folder to navigate to session
     await user.click(screen.getByRole('button', { name: 'IELTS' }))
-    // Should navigate to detail page
-    expect(screen.getByText('Deck Detail Page')).toBeInTheDocument()
+    // Should navigate to study session page
+    expect(screen.getByText('Study Session Page')).toBeInTheDocument()
   })
 })

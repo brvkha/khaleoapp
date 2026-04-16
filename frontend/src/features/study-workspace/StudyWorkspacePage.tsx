@@ -13,6 +13,7 @@ export function StudyWorkspacePage() {
   const toggleExpanded = useFolderStore((state) => state.toggleExpanded)
   const createNode = useFolderStore((state) => state.createNode)
   const deleteNode = useFolderStore((state) => state.deleteNode)
+  const getBreadcrumb = useFolderStore((state) => state.getBreadcrumb)
   const [actionError, setActionError] = useState('')
 
   useEffect(() => {
@@ -54,8 +55,14 @@ export function StudyWorkspacePage() {
             setActionError(error instanceof Error ? error.message : 'Failed to delete folder')
           }
         }}
-        onStudy={(folderId) => {
-          navigate(`/flashcard/study/deck/${folderId}`)
+        onStudy={(folderId, folderName) => {
+          const breadcrumb = getBreadcrumb(folderId).map((item) => item.name).join(' > ')
+          navigate(`/flashcard/study/session/${folderId}`, {
+            state: {
+              deckName: folderName,
+              breadcrumb,
+            },
+          })
         }}
         onToggle={toggleExpanded}
       />

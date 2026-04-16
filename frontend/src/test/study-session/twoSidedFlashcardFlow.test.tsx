@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { StudySessionPage } from '../../features/study-session/StudySessionPage'
+import { useFolderStore } from '../../store/folderStore'
 
 vi.mock('../../services/studySessionApi', () => ({
   getNextSessionCards: vi.fn(),
@@ -27,6 +28,38 @@ import { getNextSessionCards, rateSessionCard } from '../../services/studySessio
 describe('StudySessionPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Setup folder tree state
+    useFolderStore.setState({
+      nodes: [
+        {
+          id: 'd1',
+          name: 'Test Deck',
+          totalCards: 1,
+          newCards: 1,
+          learningCards: 0,
+          masteredCards: 0,
+          children: [],
+        },
+      ],
+      expanded: {},
+      loading: false,
+      error: '',
+      loadTree: vi.fn(),
+      toggleExpanded: vi.fn(),
+      createNode: vi.fn(),
+      deleteNode: vi.fn(),
+      getBreadcrumb: vi.fn(() => [
+        {
+          id: 'd1',
+          name: 'Test Deck',
+          totalCards: 1,
+          newCards: 1,
+          learningCards: 0,
+          masteredCards: 0,
+          children: [],
+        },
+      ]),
+    })
   })
 
   it('reveals answer and submits rating in two-sided flow', async () => {
@@ -53,6 +86,10 @@ describe('StudySessionPage', () => {
         </Routes>
       </MemoryRouter>,
     )
+
+    // First, click "Học Bây giờ" to start study
+    const studyButton = await screen.findByRole('button', { name: /Học/i })
+    await user.click(studyButton)
 
     await waitFor(() => expect(screen.getByText('Question front')).toBeInTheDocument())
 
