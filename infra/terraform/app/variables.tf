@@ -45,7 +45,7 @@ variable "route53_zone_name" {
 }
 
 variable "frontend_domain_name" {
-  description = "Frontend domain managed by CloudFront, e.g. khaleoshop.click or staging.khaleoshop.click"
+  description = "Frontend domain managed by CloudFront, e.g. khaleoshop.click"
   type        = string
 }
 

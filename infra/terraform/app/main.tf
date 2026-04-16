@@ -101,32 +101,9 @@ resource "aws_route_table_association" "public_a" {
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_eip" "nat" {
-  domain = "vpc"
-
-  tags = merge(local.tags, {
-    Name = "${local.name_prefix}-nat-eip"
-  })
-}
-
-resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public_a.id
-
-  tags = merge(local.tags, {
-    Name = "${local.name_prefix}-nat"
-  })
-
-  depends_on = [aws_internet_gateway.main]
-}
-
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main.id
-  }
 
   tags = merge(local.tags, {
     Name = "${local.name_prefix}-private-rt"
@@ -337,7 +314,7 @@ resource "aws_ssm_document" "nginx_tls_bootstrap" {
             "sudo systemctl restart nginx",
             "CERT_PATH=\"/etc/letsencrypt/live/$${API_DOMAIN}/fullchain.pem\"",
             "if [ ! -f \"$${CERT_PATH}\" ]; then if [ -n \"$${TLS_EMAIL}\" ]; then sudo certbot certonly --webroot -w /var/www/certbot -d \"$${API_DOMAIN}\" --non-interactive --agree-tos --email \"$${TLS_EMAIL}\" --keep-until-expiring; else sudo certbot certonly --webroot -w /var/www/certbot -d \"$${API_DOMAIN}\" --non-interactive --agree-tos --register-unsafely-without-email --keep-until-expiring; fi; fi",
-             "sudo tee /etc/nginx/conf.d/khaleo-api.conf >/dev/null <<EOF\nserver {\n    listen 80;\n    server_name $${API_DOMAIN};\n    return 301 https://\\$host\\$request_uri;\n}\n\nserver {\n    listen 443 ssl http2;\n    server_name $${API_DOMAIN};\n\n    ssl_certificate /etc/letsencrypt/live/$${API_DOMAIN}/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/$${API_DOMAIN}/privkey.pem;\n\n    location / {\n        proxy_pass http://127.0.0.1:$${BACKEND_PORT};\n        proxy_http_version 1.1;\n        proxy_set_header Host \\$host;\n        proxy_set_header X-Real-IP \\$remote_addr;\n        proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto \\$scheme;\n        proxy_set_header X-Forwarded-Host \\$server_name;\n        proxy_set_header X-Forwarded-Port \\$server_port;\n        proxy_pass_header Access-Control-Allow-Origin;\n        proxy_pass_header Access-Control-Allow-Methods;\n        proxy_pass_header Access-Control-Allow-Headers;\n        proxy_pass_header Access-Control-Allow-Credentials;\n        proxy_pass_header Access-Control-Max-Age;\n        proxy_pass_header Access-Control-Expose-Headers;\n    }\n}\nEOF",
+            "sudo tee /etc/nginx/conf.d/khaleo-api.conf >/dev/null <<EOF\nserver {\n    listen 80;\n    server_name $${API_DOMAIN};\n    return 301 https://\\$host\\$request_uri;\n}\n\nserver {\n    listen 443 ssl http2;\n    server_name $${API_DOMAIN};\n\n    ssl_certificate /etc/letsencrypt/live/$${API_DOMAIN}/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/$${API_DOMAIN}/privkey.pem;\n\n    location / {\n        proxy_pass http://127.0.0.1:$${BACKEND_PORT};\n        proxy_http_version 1.1;\n        proxy_set_header Host \\$host;\n        proxy_set_header X-Real-IP \\$remote_addr;\n        proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto \\$scheme;\n        proxy_set_header X-Forwarded-Host \\$server_name;\n        proxy_set_header X-Forwarded-Port \\$server_port;\n        proxy_pass_header Access-Control-Allow-Origin;\n        proxy_pass_header Access-Control-Allow-Methods;\n        proxy_pass_header Access-Control-Allow-Headers;\n        proxy_pass_header Access-Control-Allow-Credentials;\n        proxy_pass_header Access-Control-Max-Age;\n        proxy_pass_header Access-Control-Expose-Headers;\n    }\n}\nEOF",
             "sudo nginx -t",
             "sudo systemctl reload nginx",
             "sudo systemctl enable --now certbot-renew.timer || true",

@@ -38,11 +38,6 @@ output "vpc_id" {
   description = "VPC id"
 }
 
-output "nat_gateway_id" {
-  value       = aws_nat_gateway.main.id
-  description = "NAT Gateway id"
-}
-
 output "rds_endpoint" {
   value       = aws_db_instance.main.endpoint
   description = "RDS endpoint"
@@ -53,13 +48,13 @@ output "rds_db_name" {
   description = "RDS database name"
 }
 
-output "staging_frontend_url" {
+output "frontend_url" {
   value       = var.enable_frontend_custom_domain ? "https://${var.frontend_domain_name}" : "https://${aws_cloudfront_distribution.frontend.domain_name}"
-  description = "Frontend URL for staging/prod validation"
+  description = "Frontend URL"
 }
 
-output "staging_api_url" {
+output "api_url" {
   value       = "https://${var.api_domain_name}"
-  description = "API URL for staging/prod validation"
+  description = "API URL"
 }
 

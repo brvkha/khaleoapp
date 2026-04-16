@@ -63,7 +63,7 @@ resource "aws_cloudwatch_log_group" "ssm_session" {
 }
 
 # Account-level Session Manager preferences document.
-# Keep this in the bootstrap stack so prod/staging states do not fight over one global resource.
+# Keep this in the bootstrap stack so separate Terraform states do not fight over one global resource.
 resource "aws_ssm_document" "session_preferences" {
   count           = var.enable_ssm_session_logs ? 1 : 0
   name            = "SSM-SessionManagerRunShell"
