@@ -205,7 +205,7 @@ jobs:
                  "docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}",
                  "docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
                  "docker stop khaleo-backend 2>/dev/null || true && docker rm khaleo-backend 2>/dev/null || true",
-                 "docker run -d --restart unless-stopped --name khaleo-backend -p 8080:8080 --env-file /opt/khaleo/flashcard-backend/runtime-secrets.env -e SPRING_PROFILES_ACTIVE=prod -e SPRING_JPA_HIBERNATE_DDL_AUTO=validate ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
+                 "docker run -d --restart unless-stopped --name khaleo-backend -p 8080:8080 --env-file /opt/khaleo/flashcard-backend/runtime-secrets.env -e SPRING_PROFILES_ACTIVE=production -e SPRING_JPA_HIBERNATE_DDL_AUTO=validate ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
                  "sleep 15",
                  "echo 'Container Status:' && docker ps -a --filter name=khaleo-backend",
                  "echo 'Container Logs:' && docker logs --tail 100 khaleo-backend 2>&1",
