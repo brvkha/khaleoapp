@@ -14,6 +14,8 @@ public interface DeckRepository extends JpaRepository<Deck, UUID> {
 
     List<Deck> findByAuthorId(UUID authorId);
 
+    Optional<Deck> findByIdAndAuthorId(UUID id, UUID authorId);
+
     Page<Deck> findByAuthorId(UUID authorId, Pageable pageable);
 
     Page<Deck> findByIsPublicTrue(Pageable pageable);

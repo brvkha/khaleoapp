@@ -1,44 +1,58 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { StudyWorkspacePage } from '../../features/study-workspace/StudyWorkspacePage'
-
-vi.mock('../../services/privateWorkspaceApi', () => ({
-  listPrivateDecks: vi.fn(),
-  createPrivateDeck: vi.fn(async () => undefined),
-  deletePrivateDeck: vi.fn(async () => undefined),
-  getDeckStats: vi.fn(async (deckId: string) => ({ deckId, learning: 0, review: 0, new_cards: 0 })),
-}))
-
-import { listPrivateDecks } from '../../services/privateWorkspaceApi'
+import { useFolderStore } from '../../store/folderStore'
 
 describe('StudyWorkspacePage', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    useFolderStore.setState({
+      nodes: [
+        {
+          id: 'folder-root',
+          name: 'IELTS',
+          totalCards: 6,
+          newCards: 2,
+          learningCards: 2,
+          masteredCards: 2,
+          children: [],
+        },
+      ],
+      expanded: { 'folder-root': true },
+      loading: false,
+      error: '',
+      loadTree: vi.fn(async () => undefined),
+      toggleExpanded: vi.fn(),
+      createNode: vi.fn(async () => undefined),
+      deleteNode: vi.fn(async () => undefined),
+      getBreadcrumb: vi.fn(() => [
+        {
+          id: 'folder-root',
+          name: 'IELTS',
+          totalCards: 6,
+          newCards: 2,
+          learningCards: 2,
+          masteredCards: 2,
+          children: [],
+        },
+      ]),
+    })
   })
 
-  it('shows only private decks and supports private search flow', async () => {
-    vi.mocked(listPrivateDecks).mockResolvedValue([
-      { id: 'd-private', name: 'Owned Private Deck', description: 'mine', isPublic: false },
-      { id: 'd-public', name: 'Public Deck', description: 'not private', isPublic: true },
-    ])
-
+  it('navigates to study session when folder label is clicked', async () => {
     const user = userEvent.setup()
 
     render(
-      <MemoryRouter>
-        <StudyWorkspacePage />
+      <MemoryRouter initialEntries={['/flashcard/study']}>
+        <Routes>
+          <Route element={<StudyWorkspacePage />} path="/flashcard/study" />
+          <Route element={<div>Session page</div>} path="/flashcard/study/session/:deckId" />
+        </Routes>
       </MemoryRouter>,
     )
 
-    await waitFor(() => expect(screen.getByText('Owned Private Deck')).toBeInTheDocument())
-    expect(screen.queryByText('Public Deck')).not.toBeInTheDocument()
-
-    await user.type(screen.getByLabelText('Search decks'), 'owned')
-
-    await waitFor(() => {
-      expect(listPrivateDecks).toHaveBeenCalledWith('owned')
-    })
+    await user.click(screen.getByRole('button', { name: 'IELTS' }))
+    expect(screen.getByText('Session page')).toBeInTheDocument()
   })
 })

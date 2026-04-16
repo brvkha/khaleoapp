@@ -10,6 +10,7 @@ import com.khaleo.flashcard.model.study.StudyCardSummary;
 import com.khaleo.flashcard.model.study.StudyPaginationToken;
 import com.khaleo.flashcard.repository.CardLearningStateRepository;
 import com.khaleo.flashcard.repository.CardRepository;
+import com.khaleo.flashcard.service.deck.FolderService;
 import com.khaleo.flashcard.service.persistence.PersistenceValidationExceptionMapper;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class NextCardsService {
     private final StudySessionLimitService studySessionLimitService;
     private final CardLearningStateRepository cardLearningStateRepository;
     private final CardRepository cardRepository;
+    private final FolderService folderService;
     private final PersistenceValidationExceptionMapper exceptionMapper;
     private final NewRelicDeckMediaInstrumentation instrumentation;
 
@@ -55,25 +57,26 @@ public class NextCardsService {
 
         Instant now = Instant.now();
         UUID userId = context.actorId();
+        List<UUID> studyDeckIds = folderService.collectDescendantDeckIds(deckId, context.deck().getAuthor().getId());
 
         List<CardLearningState> dueLearning = cardLearningStateRepository
-            .findByUserIdAndCardDeckIdAndStateInAndNextReviewDateLessThanEqualOrderByNextReviewDateAsc(
+            .findByUserIdAndCardDeckIdInAndStateInAndNextReviewDateLessThanEqualOrderByNextReviewDateAsc(
                 userId,
-                deckId,
+                studyDeckIds,
                 List.of(CardLearningStateType.LEARNING, CardLearningStateType.RELEARNING),
                 now);
 
         List<CardLearningState> dueReview = cardLearningStateRepository
-                .findByUserIdAndCardDeckIdAndStateInAndNextReviewDateLessThanEqualOrderByNextReviewDateAsc(
+                .findByUserIdAndCardDeckIdInAndStateInAndNextReviewDateLessThanEqualOrderByNextReviewDateAsc(
                         userId,
-                        deckId,
+                        studyDeckIds,
                         List.of(CardLearningStateType.REVIEW, CardLearningStateType.MASTERED),
                         now);
 
         int newQuota = studySessionLimitService.remainingNewCardQuota(userId);
         List<Card> newCards = newQuota <= 0
                 ? List.of()
-                : cardRepository.findUnseenCardsInDeck(deckId, userId, PageRequest.of(0, newQuota));
+                : cardRepository.findUnseenCardsInDecks(studyDeckIds, userId, PageRequest.of(0, newQuota));
 
         // Projection can evolve (rich-card fields) but scheduling order and FSRS state transitions remain unchanged.
         List<StudyCardSummary> ordered = new ArrayList<>(dueLearning.size() + dueReview.size() + newCards.size());
@@ -96,6 +99,7 @@ public class NextCardsService {
         attrs.put("offset", token.offset());
         attrs.put("hasMore", hasMore);
         attrs.put("newQuota", newQuota);
+        attrs.put("deckCount", studyDeckIds.size());
 
         instrumentation.recordStudyNextCardsOutcome("success", attrs);
         log.info("event=study_next_cards_success deckId={} userId={} size={} returned={} offset={} hasMore={}",

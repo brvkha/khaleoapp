@@ -15,6 +15,8 @@ public interface CardLearningStateRepository extends JpaRepository<CardLearningS
 
     Optional<CardLearningState> findByUserIdAndCardId(UUID userId, UUID cardId);
 
+    List<CardLearningState> findByUserIdAndCardIdIn(UUID userId, Collection<UUID> cardIds);
+
     @Query("""
         SELECT cls FROM CardLearningState cls
         JOIN FETCH cls.card c
@@ -44,6 +46,22 @@ public interface CardLearningStateRepository extends JpaRepository<CardLearningS
     List<CardLearningState> findByUserIdAndCardDeckIdAndStateInAndNextReviewDateLessThanEqualOrderByNextReviewDateAsc(
         UUID userId,
         UUID deckId,
+        Collection<CardLearningStateType> states,
+        Instant dueAt);
+
+    @Query("""
+        SELECT cls FROM CardLearningState cls
+        JOIN FETCH cls.card c
+        JOIN FETCH c.deck
+        WHERE cls.user.id = ?1
+          AND c.deck.id IN (?2)
+          AND cls.state IN (?3)
+          AND cls.nextReviewDate <= ?4
+        ORDER BY cls.nextReviewDate ASC
+        """)
+    List<CardLearningState> findByUserIdAndCardDeckIdInAndStateInAndNextReviewDateLessThanEqualOrderByNextReviewDateAsc(
+        UUID userId,
+        Collection<UUID> deckIds,
         Collection<CardLearningStateType> states,
         Instant dueAt);
 

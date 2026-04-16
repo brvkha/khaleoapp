@@ -1,6 +1,7 @@
 package com.khaleo.flashcard.repository;
 
 import com.khaleo.flashcard.entity.Card;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -14,21 +15,23 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
 
     List<Card> findByDeckId(UUID deckId);
 
+    List<Card> findByDeckIdIn(Collection<UUID> deckIds);
+
     long countByDeckId(UUID deckId);
 
     Page<Card> findByDeckId(UUID deckId, Pageable pageable);
 
     @Query("""
             select c from Card c
-            where c.deck.id = :deckId
+            where c.deck.id in :deckIds
                 and not exists (
                     select 1 from CardLearningState cls
                     where cls.card.id = c.id and cls.user.id = :userId
                 )
             order by c.id asc
             """)
-    List<Card> findUnseenCardsInDeck(
-            @Param("deckId") UUID deckId,
+    List<Card> findUnseenCardsInDecks(
+            @Param("deckIds") Collection<UUID> deckIds,
             @Param("userId") UUID userId,
             Pageable pageable);
 
@@ -51,4 +54,7 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
 
     @Modifying
     void deleteByDeckId(UUID deckId);
+
+    @Modifying
+    void deleteByDeckIdIn(Collection<UUID> deckIds);
 }
