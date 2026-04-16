@@ -3,7 +3,7 @@
 Monorepo cho KhaLeo flashcard app:
 - `backend/`: Spring Boot + MySQL + Flyway + JWT
 - `frontend/`: React + Vite + TypeScript + Tailwind
-- `infra/terraform/`: Terraform cho staging/prod
+- `infra/terraform/`: Terraform cho prod
 - `docs/`: đặc tả và kế hoạch triển khai
 
 ## Phase 1 Local Development
