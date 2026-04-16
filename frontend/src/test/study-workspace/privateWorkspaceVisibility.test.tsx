@@ -40,7 +40,7 @@ describe('StudyWorkspacePage', () => {
     })
   })
 
-  it('navigates to study session when folder label is clicked', async () => {
+  it('navigates to study session when "Học Bây giờ" button is clicked', async () => {
     const user = userEvent.setup()
 
     render(
@@ -52,7 +52,13 @@ describe('StudyWorkspacePage', () => {
       </MemoryRouter>,
     )
 
+    // Click on folder to open modal
     await user.click(screen.getByRole('button', { name: 'IELTS' }))
+    // Modal should show
+    expect(screen.getByText('Học Bây giờ')).toBeInTheDocument()
+    // Click the study button
+    await user.click(screen.getByText('Học Bây giờ'))
+    // Should navigate to session
     expect(screen.getByText('Session page')).toBeInTheDocument()
   })
 })

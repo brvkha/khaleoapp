@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FolderTreeView } from '../../components/FolderTreeView'
+import { DeckStudyModal, type DeckInfo } from '../../components/DeckStudyModal'
 import { useFolderStore } from '../../store/folderStore'
 
 export function StudyWorkspacePage() {
@@ -15,10 +16,39 @@ export function StudyWorkspacePage() {
   const deleteNode = useFolderStore((state) => state.deleteNode)
   const getBreadcrumb = useFolderStore((state) => state.getBreadcrumb)
   const [actionError, setActionError] = useState('')
+  const [selectedDeck, setSelectedDeck] = useState<DeckInfo | null>(null)
 
   useEffect(() => {
     void loadTree()
   }, [loadTree])
+
+  const handleStudyClick = (folderId: string, folderName: string) => {
+    const node = nodes.find((n) => n.id === folderId)
+    if (!node) return
+
+    setSelectedDeck({
+      id: folderId,
+      name: folderName,
+      newCards: node.newCards,
+      learningCards: node.learningCards,
+      masteredCards: node.masteredCards,
+    })
+  }
+
+  const handleConfirmStudy = () => {
+    if (!selectedDeck) return
+
+    const breadcrumb = getBreadcrumb(selectedDeck.id)
+      .map((item) => item.name)
+      .join(' > ')
+    navigate(`/flashcard/study/session/${selectedDeck.id}`, {
+      state: {
+        deckName: selectedDeck.name,
+        breadcrumb,
+      },
+    })
+    setSelectedDeck(null)
+  }
 
   return (
     <section>
@@ -55,16 +85,15 @@ export function StudyWorkspacePage() {
             setActionError(error instanceof Error ? error.message : 'Failed to delete folder')
           }
         }}
-        onStudy={(folderId, folderName) => {
-          const breadcrumb = getBreadcrumb(folderId).map((item) => item.name).join(' > ')
-          navigate(`/flashcard/study/session/${folderId}`, {
-            state: {
-              deckName: folderName,
-              breadcrumb,
-            },
-          })
-        }}
+        onStudy={handleStudyClick}
         onToggle={toggleExpanded}
+      />
+
+      <DeckStudyModal
+        deck={selectedDeck}
+        isOpen={selectedDeck !== null}
+        onClose={() => setSelectedDeck(null)}
+        onStudy={handleConfirmStudy}
       />
     </section>
   )
