@@ -41,6 +41,10 @@ public class Deck extends BaseAuditableEntity {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "parent_id", nullable = true)
+    private Deck parent;
+
     @NotBlank
     @Size(max = 100)
     @Column(name = "name", nullable = false, length = 100)
@@ -62,6 +66,10 @@ public class Deck extends BaseAuditableEntity {
     @Builder.Default
     @OneToMany(mappedBy = "deck", fetch = FetchType.LAZY)
     private List<Card> cards = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY)
+    private List<Deck> children = new ArrayList<>();
 
     @Column(name = "banned_at")
     private Instant bannedAt;

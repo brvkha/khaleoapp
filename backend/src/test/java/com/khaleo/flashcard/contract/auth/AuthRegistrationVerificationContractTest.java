@@ -55,7 +55,7 @@ class AuthRegistrationVerificationContractTest extends IntegrationPersistenceTes
                 .getResponse()
                 .getContentAsString();
 
-        assertThat(response).contains("verificationRequired", "false");
+        assertThat(response).contains("\"verificationRequired\":true");
         assertThat(userRepository.findByEmail("contract-user@example.com")).isPresent();
     }
 

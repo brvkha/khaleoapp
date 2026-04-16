@@ -28,5 +28,6 @@ public abstract class IntegrationPersistenceTestBase {
         registry.add("spring.datasource.password", MYSQL::getPassword);
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.flyway.enabled", () -> "true");
+        registry.add("app.auth.email.verification-required", () -> "true");
     }
 }

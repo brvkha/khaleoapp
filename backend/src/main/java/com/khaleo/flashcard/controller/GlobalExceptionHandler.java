@@ -5,10 +5,14 @@ import com.khaleo.flashcard.service.study.StudyDomainException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@Slf4j
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -45,6 +49,23 @@ public class GlobalExceptionHandler {
                 "status", status.value(),
                 "error", ex.getErrorCode().name(),
                 "message", ex.getMessage(),
+                "path", request.getRequestURI()));
+    }
+
+    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidDataAccess(
+            InvalidDataAccessApiUsageException ex,
+            HttpServletRequest request) {
+        log.error("InvalidDataAccessApiUsageException:", ex);
+        String message = ex.getMessage();
+        if (message == null) {
+            message = ex.getCause() != null ? ex.getCause().getMessage() : "Unknown database error";
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "timestamp", Instant.now().toString(),
+                "status", HttpStatus.BAD_REQUEST.value(),
+                "error", "INVALID_REQUEST",
+                "message", message,
                 "path", request.getRequestURI()));
     }
 }

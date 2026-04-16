@@ -15,12 +15,19 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: prod
+    environment: production
     permissions:
       contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Resolve short SHA
+        id: sha
+        run: echo "value=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Record immutable backend artifact path
+        run: echo "backend/${{ steps.sha.outputs.value }}/app.jar"
 
       - name: Setup JDK
         uses: actions/setup-java@v4
@@ -166,7 +173,15 @@ jobs:
             done
 
       - name: Deploy backend container to EC2 via SSM
+        env:
+          DB_SECRET_ID: ${{ vars.DB_SECRET_ID }}
+          JWT_SECRET_ID: ${{ vars.JWT_SECRET_ID }}
+          SES_SECRET_ID: ${{ vars.SES_SECRET_ID }}
+          RUNTIME_ENV_PATH: ${{ vars.RUNTIME_ENV_PATH }}
         run: |
+            chmod +x backend/scripts/deploy-via-ssm.sh
+            cp backend/scripts/deploy-via-ssm.sh /tmp/deploy-via-ssm.sh
+
             RDS_HOST="${{ secrets.RDS_HOST || secrets.RDS_HOST_PROD }}"
             if [ -z "$RDS_HOST" ]; then
               RDS_HOST=$(aws rds describe-db-instances \
@@ -219,6 +234,11 @@ jobs:
                 --details \
                 --query "CommandInvocations[0].Status" \
                 --output text)
+              failed_targets=$(aws ssm list-command-invocations \
+                --command-id "$COMMAND_ID" \
+                --details \
+                --query "CommandInvocations[0].CommandPlugins[0].Output" \
+                --output text)
 
               echo "Current SSM status: $STATUS"
 
@@ -228,6 +248,7 @@ jobs:
 
               if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
                 echo "SSM Command Failed!"
+                echo "failed_targets=$failed_targets"
                 aws ssm list-command-invocations \
                   --command-id "$COMMAND_ID" \
                   --details \
@@ -237,6 +258,11 @@ jobs:
               fi
               sleep 10
             done
+
+      - name: Rollback Guidance
+        if: failure()
+        run: |
+          echo "Rollback Guidance: redeploy previous immutable artifact or rerun workflow with last known-good SHA."
 
       - name: Notify success
         if: success()

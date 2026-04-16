@@ -40,7 +40,13 @@ public class PersistenceValidationExceptionMapper {
 
     public RuntimeException mapCreateCardFailure(RuntimeException ex, UUID deckId) {
         String detail = extractDetail(ex).toLowerCase(Locale.ROOT);
-        if (containsAny(detail, "front and back must each contain", "ck_cards_front_content", "ck_cards_back_content")) {
+        if (containsAny(
+                detail,
+                "front and back must each contain",
+                "ck_cards_front_content",
+                "ck_cards_back_content",
+                "card_validation_term_required",
+                "card_validation_answer_required")) {
             return logged(
                     PersistenceErrorCode.INVALID_CARD_CONTENT,
                     "Card front and back must each contain text or media content.",

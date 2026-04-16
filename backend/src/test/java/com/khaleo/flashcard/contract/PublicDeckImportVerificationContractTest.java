@@ -46,12 +46,10 @@ class PublicDeckImportVerificationContractTest extends IntegrationPersistenceTes
         User actor = saveUser("public-actor-unverified@example.com", false);
         Deck deck = saveDeck(owner, "Public For Verification Gate", true);
 
-        // Note: In dev/test config, email verification is NOT required,
-        // so unverified users are allowed to import. This test verifies
-        // that the endpoint accepts authenticated users regardless of verification status.
+        // Import requires a verified account; authenticated but unverified users must be denied.
         mockMvc.perform(post("/api/v1/public/decks/{deckId}/import", deck.getId())
                         .header("Authorization", bearerFor(actor)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isForbidden());
     }
 
     private User saveUser(String email, boolean verified) {

@@ -50,17 +50,17 @@ class MediaReferenceLifecycleIT extends IntegrationPersistenceTestBase {
         authenticateAs(owner.getId());
 
         Deck deck = service.createDeck(owner.getId(), new RelationalPersistenceService.CreateDeckRequest("Deck", null, null, false, null));
-        Card first = service.createCard(deck.getId(), new RelationalPersistenceService.CreateCardRequest("A", "uploads/shared.mp3", "1", null));
-        Card second = service.createCard(deck.getId(), new RelationalPersistenceService.CreateCardRequest("B", "uploads/shared.mp3", "2", null));
+        Card first = service.createCard(deck.getId(), new RelationalPersistenceService.CreateCardRequest("A", "https://images.unsplash.com/photo-1?w=400", "1", null));
+        Card second = service.createCard(deck.getId(), new RelationalPersistenceService.CreateCardRequest("B", "https://images.unsplash.com/photo-1?w=400", "2", null));
 
-        service.updateCard(first.getId(), new RelationalPersistenceService.UpdateCardRequest(null, "uploads/new.mp3", null, null));
+        service.updateCard(first.getId(), new RelationalPersistenceService.UpdateCardRequest("A", "1", "https://images.unsplash.com/photo-2?w=400", null, null, null, null));
         verify(s3Client, times(0)).deleteObject(any(DeleteObjectRequest.class));
 
         service.deleteCard(second.getId());
         verify(s3Client, times(1)).deleteObject(any(DeleteObjectRequest.class));
 
-        org.assertj.core.api.Assertions.assertThat(mediaObjectReferenceRepository.findById("uploads/shared.mp3")).isPresent();
-        org.assertj.core.api.Assertions.assertThat(mediaObjectReferenceRepository.findById("uploads/shared.mp3").get().getReferenceCount()).isEqualTo(0);
+        org.assertj.core.api.Assertions.assertThat(mediaObjectReferenceRepository.findById("https://images.unsplash.com/photo-1?w=400")).isPresent();
+        org.assertj.core.api.Assertions.assertThat(mediaObjectReferenceRepository.findById("https://images.unsplash.com/photo-1?w=400").get().getReferenceCount()).isEqualTo(0);
 
         SecurityContextHolder.clearContext();
     }

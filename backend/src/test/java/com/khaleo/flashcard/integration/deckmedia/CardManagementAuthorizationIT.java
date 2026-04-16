@@ -45,7 +45,7 @@ class CardManagementAuthorizationIT extends IntegrationPersistenceTestBase {
         Deck deck = service.createDeck(owner.getId(), new RelationalPersistenceService.CreateDeckRequest("Deck", null, null, false, null));
         Card card = service.createCard(deck.getId(), new RelationalPersistenceService.CreateCardRequest("One", null, "Two", null));
 
-        Card updated = service.updateCard(card.getId(), new RelationalPersistenceService.UpdateCardRequest("One Updated", null, null, null));
+        Card updated = service.updateCard(card.getId(), new RelationalPersistenceService.UpdateCardRequest("One Updated", "Two", null, null, null, null, null));
         assertThat(updated.getFrontText()).isEqualTo("One Updated");
     }
 
@@ -59,7 +59,7 @@ class CardManagementAuthorizationIT extends IntegrationPersistenceTestBase {
         Card card = service.createCard(deck.getId(), new RelationalPersistenceService.CreateCardRequest("A", null, "B", null));
 
         authenticateAs(intruder.getId());
-        assertThatThrownBy(() -> service.updateCard(card.getId(), new RelationalPersistenceService.UpdateCardRequest("Hack", null, null, null)))
+        assertThatThrownBy(() -> service.updateCard(card.getId(), new RelationalPersistenceService.UpdateCardRequest("Hack", "Hack", null, null, null, null, null)))
                 .isInstanceOf(PersistenceValidationException.class)
                 .satisfies(ex -> assertThat(((PersistenceValidationException) ex).getErrorCode())
                         .isEqualTo(PersistenceErrorCode.AUTHORIZATION_DENIED));
@@ -77,7 +77,7 @@ class CardManagementAuthorizationIT extends IntegrationPersistenceTestBase {
         authenticateAs(admin.getId());
         service.deleteCard(card.getId());
 
-        assertThatThrownBy(() -> service.updateCard(card.getId(), new RelationalPersistenceService.UpdateCardRequest("X", null, null, null)))
+        assertThatThrownBy(() -> service.updateCard(card.getId(), new RelationalPersistenceService.UpdateCardRequest("X", "X", null, null, null, null, null)))
                 .isInstanceOf(PersistenceValidationException.class)
                 .satisfies(ex -> assertThat(((PersistenceValidationException) ex).getErrorCode())
                         .isEqualTo(PersistenceErrorCode.CARD_NOT_FOUND));

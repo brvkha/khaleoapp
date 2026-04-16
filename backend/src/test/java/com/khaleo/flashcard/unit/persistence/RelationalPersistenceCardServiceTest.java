@@ -113,7 +113,7 @@ class RelationalPersistenceCardServiceTest {
         assertThatThrownBy(() -> relationalPersistenceService.createCard(deckId, request))
                 .isInstanceOf(PersistenceValidationException.class)
                 .satisfies(ex -> assertThat(((PersistenceValidationException) ex).getErrorCode())
-                        .isEqualTo(PersistenceValidationException.PersistenceErrorCode.VALIDATION_REJECTED));
+                        .isEqualTo(PersistenceValidationException.PersistenceErrorCode.INVALID_CARD_CONTENT));
 
         verify(cardRepository, never()).save(any(Card.class));
     }
@@ -130,7 +130,7 @@ class RelationalPersistenceCardServiceTest {
         assertThatThrownBy(() -> relationalPersistenceService.createCard(deckId, request))
                 .isInstanceOf(PersistenceValidationException.class)
                 .satisfies(ex -> assertThat(((PersistenceValidationException) ex).getErrorCode())
-                        .isEqualTo(PersistenceValidationException.PersistenceErrorCode.VALIDATION_REJECTED));
+                        .isEqualTo(PersistenceValidationException.PersistenceErrorCode.INVALID_CARD_CONTENT));
 
         verify(cardRepository, never()).save(any(Card.class));
         verify(deckCardAccessGuard).ensureOwnerOrAdmin(eq(deck.getAuthor().getId()), eq("create"), eq("card"), eq(deckId.toString()));
