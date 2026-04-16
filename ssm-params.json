@@ -1,0 +1,1 @@
+{"commands":["sudo systemctl is-active nginx","sudo systemctl is-active docker","sudo ss -lntp","sudo nginx -t","docker ps","curl -s -I http://127.0.0.1:8080/actuator/health | head -n 1"]}
