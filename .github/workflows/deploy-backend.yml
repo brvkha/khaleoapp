@@ -172,8 +172,8 @@ jobs:
               sleep 10
             done
 
-       - name: Deploy backend container to EC2 via SSM
-         run: |
+      - name: Deploy backend container to EC2 via SSM
+        run: |
              RDS_HOST="${{ secrets.RDS_HOST || secrets.RDS_HOST_PROD }}"
              if [ -z "$RDS_HOST" ]; then
                RDS_HOST=$(aws rds describe-db-instances \
