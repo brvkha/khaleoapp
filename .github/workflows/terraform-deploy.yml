@@ -1,16 +1,16 @@
 name: Main Deployment Pipeline
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'frontend/**'
-      - 'backend/**'
-      - 'infra/terraform/**'
-      - '.github/workflows/terraform-deploy.yml'
-      - '.github/workflows/deploy-frontend.yml'
-      - '.github/workflows/deploy-backend.yml'
+#  push:
+#    branches:
+#      - main
+#    paths:
+#      - 'frontend/**'
+#      - 'backend/**'
+#      - 'infra/terraform/**'
+#      - '.github/workflows/terraform-deploy.yml'
+#      - '.github/workflows/deploy-frontend.yml'
+#      - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 
 permissions:

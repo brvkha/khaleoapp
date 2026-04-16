@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -195,25 +196,32 @@ public class FolderService {
         Map<UUID, DeckCardStatusCounts> countsByDeck = new HashMap<>();
         List<UUID> cardIds = cards.stream().map(Card::getId).toList();
         List<CardLearningState> learningStates = cardLearningStateRepository.findByUserIdAndCardIdIn(actorId, cardIds);
-        Map<UUID, CardLearningStateType> stateByCard = new HashMap<>();
+        Map<UUID, CardLearningState> learningStateByCard = new HashMap<>();
+        Instant now = Instant.now();
         for (CardLearningState state : learningStates) {
-            stateByCard.put(state.getCard().getId(), state.getState());
+            learningStateByCard.put(state.getCard().getId(), state);
         }
 
         for (Card card : cards) {
             UUID deckId = card.getDeck().getId();
             DeckCardStatusCounts current = countsByDeck.getOrDefault(deckId, DeckCardStatusCounts.empty());
 
-            CardLearningStateType state = stateByCard.get(card.getId());
-            if (state == null) {
+            CardLearningState learningState = learningStateByCard.get(card.getId());
+            if (learningState == null) {
                 countsByDeck.put(deckId, current.incNew());
                 continue;
             }
-            if (state == CardLearningStateType.MASTERED) {
-                countsByDeck.put(deckId, current.incMastered());
+
+            CardLearningStateType state = learningState.getState();
+            if (state == CardLearningStateType.LEARNING || state == CardLearningStateType.RELEARNING) {
+                countsByDeck.put(deckId, current.incLearning());
                 continue;
             }
-            countsByDeck.put(deckId, current.incLearning());
+
+            boolean dueForReview = learningState.getNextReviewDate() == null || !learningState.getNextReviewDate().isAfter(now);
+            if (dueForReview) {
+                countsByDeck.put(deckId, current.incMastered());
+            }
         }
 
         return countsByDeck;

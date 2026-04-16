@@ -71,6 +71,10 @@ public class User extends BaseAuditableEntity {
     private Integer dailyLearningLimit = 9999;
 
     @Builder.Default
+    @Column(name = "timezone", nullable = false, length = 64)
+    private String timezone = "Asia/Ho_Chi_Minh";
+
+    @Builder.Default
     @OneToMany(mappedBy = "author", fetch = FetchType.LAZY)
     private List<Deck> decks = new ArrayList<>();
 
@@ -116,6 +120,9 @@ public class User extends BaseAuditableEntity {
         }
         if (dailyLearningLimit == null) {
             dailyLearningLimit = 9999;
+        }
+        if (timezone == null || timezone.isBlank()) {
+            timezone = "Asia/Ho_Chi_Minh";
         }
         if (failedLoginAttempts == null) {
             failedLoginAttempts = 0;
