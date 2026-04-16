@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FolderTreeView } from '../../components/FolderTreeView'
-import { DeckStudyModal, type DeckInfo } from '../../components/DeckStudyModal'
 import { useFolderStore } from '../../store/folderStore'
 
 export function StudyWorkspacePage() {
@@ -14,48 +13,18 @@ export function StudyWorkspacePage() {
   const toggleExpanded = useFolderStore((state) => state.toggleExpanded)
   const createNode = useFolderStore((state) => state.createNode)
   const deleteNode = useFolderStore((state) => state.deleteNode)
-  const getBreadcrumb = useFolderStore((state) => state.getBreadcrumb)
   const [actionError, setActionError] = useState('')
-  const [selectedDeck, setSelectedDeck] = useState<DeckInfo | null>(null)
 
   useEffect(() => {
     void loadTree()
   }, [loadTree])
-
-  const handleStudyClick = (folderId: string, folderName: string) => {
-    const node = nodes.find((n) => n.id === folderId)
-    if (!node) return
-
-    setSelectedDeck({
-      id: folderId,
-      name: folderName,
-      newCards: node.newCards,
-      learningCards: node.learningCards,
-      masteredCards: node.masteredCards,
-    })
-  }
-
-  const handleConfirmStudy = () => {
-    if (!selectedDeck) return
-
-    const breadcrumb = getBreadcrumb(selectedDeck.id)
-      .map((item) => item.name)
-      .join(' > ')
-    navigate(`/flashcard/study/session/${selectedDeck.id}`, {
-      state: {
-        deckName: selectedDeck.name,
-        breadcrumb,
-      },
-    })
-    setSelectedDeck(null)
-  }
 
   return (
     <section>
       <div className="mb-4">
         <h1 className="text-2xl font-semibold">Study Workspace</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Click a folder name to start study mode with that folder and all descendants.
+          Click a folder name to view details and start study mode.
         </p>
       </div>
 
@@ -85,15 +54,10 @@ export function StudyWorkspacePage() {
             setActionError(error instanceof Error ? error.message : 'Failed to delete folder')
           }
         }}
-        onStudy={handleStudyClick}
+        onStudy={(folderId) => {
+          navigate(`/flashcard/study/deck/${folderId}`)
+        }}
         onToggle={toggleExpanded}
-      />
-
-      <DeckStudyModal
-        deck={selectedDeck}
-        isOpen={selectedDeck !== null}
-        onClose={() => setSelectedDeck(null)}
-        onStudy={handleConfirmStudy}
       />
     </section>
   )

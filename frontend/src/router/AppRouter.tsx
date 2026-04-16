@@ -4,6 +4,7 @@ import { LoginPage } from '../features/auth/LoginPage'
 import { RegisterPage } from '../features/auth/RegisterPage'
 import { DecksPage } from '../features/decks/DecksPage'
 import { StudyWorkspacePage } from '../features/study-workspace/StudyWorkspacePage'
+import { DeckDetailPage } from '../features/study-workspace/DeckDetailPage'
 import { StudySessionPage } from '../features/study-session/StudySessionPage'
 import { CardsWorkspacePage } from '../features/cards-workspace/CardsWorkspacePage'
 import { ProfilePage } from '../features/profile/ProfilePage'
@@ -41,6 +42,7 @@ export function AppRouter() {
           <Route index element={<HomePage />} />
           <Route path="/flashcard/cards" element={<CardsWorkspacePage />} />
           <Route path="/flashcard/study" element={<StudyWorkspacePage />} />
+          <Route path="/flashcard/study/deck/:deckId" element={<DeckDetailPage />} />
           <Route path="/flashcard/study/session/:deckId" element={<StudySessionPage />} />
           <Route path="/study/session/:deckId" element={<StudySessionPage />} />
           <Route path="/flashcard/settings" element={<ProfilePage />} />
