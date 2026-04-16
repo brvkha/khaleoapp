@@ -8,6 +8,7 @@ import com.khaleo.flashcard.integration.support.IntegrationPersistenceTestBase;
 import com.khaleo.flashcard.model.dynamo.RatingGiven;
 import com.khaleo.flashcard.service.study.StudySchedulerService;
 import java.time.Instant;
+import java.time.ZoneId;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,9 +30,9 @@ class StudySchedulerLegacyBehaviorIntegrationTest extends IntegrationPersistence
 
         var outcome = studySchedulerService.apply(review, RatingGiven.GOOD, Instant.now());
 
-        assertThat(outcome.state()).isEqualTo(CardLearningStateType.REVIEW);
+        assertThat(outcome.state()).isEqualTo(CardLearningStateType.MASTERED);
         assertThat(outcome.scheduledDays()).isGreaterThanOrEqualTo(1);
-        assertThat(outcome.stability()).isPositive();
+        assertThat(outcome.nextReviewAt().atZone(ZoneId.of("Asia/Ho_Chi_Minh")).getHour()).isEqualTo(4);
         assertThat(outcome.difficulty()).isPositive();
     }
 

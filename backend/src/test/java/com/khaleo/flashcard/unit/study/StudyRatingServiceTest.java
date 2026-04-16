@@ -116,7 +116,7 @@ class StudyRatingServiceTest {
                 1,
                 0,
                 nextReview.minusSeconds(30));
-        when(studySchedulerService.apply(any(CardLearningState.class), eq(RatingGiven.GOOD), any(Instant.class)))
+        when(studySchedulerService.apply(any(CardLearningState.class), eq(RatingGiven.GOOD), any(Instant.class), any()))
                 .thenReturn(outcome);
 
         when(cardLearningStateUpdateService.saveWithSingleRetry(eq(actorId), eq(cardId), any()))
@@ -139,10 +139,12 @@ class StudyRatingServiceTest {
     }
 
     private void mockCardAccess(UUID cardId) {
+        UUID actorId = UUID.randomUUID();
         Deck deck = Deck.builder().id(UUID.randomUUID()).build();
         Card card = Card.builder().id(cardId).deck(deck).build();
         when(studyAccessService.requireCardAccess(cardId))
-                .thenReturn(new StudyAccessService.CardAccessContext(UUID.randomUUID(), card, deck));
+                .thenReturn(new StudyAccessService.CardAccessContext(actorId, card, deck));
+        when(userRepository.findById(actorId)).thenReturn(Optional.of(User.builder().id(actorId).timezone("Asia/Ho_Chi_Minh").build()));
     }
 }
 

@@ -22,6 +22,7 @@ import com.khaleo.flashcard.service.persistence.PersistenceValidationExceptionMa
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -118,6 +119,37 @@ class FolderServiceTest {
         assertThat(rootNode.masteredCards()).isEqualTo(1);
         assertThat(rootNode.children()).hasSize(1);
         assertThat(rootNode.children().get(0).masteredCards()).isEqualTo(1);
+    }
+
+    @Test
+    void getFolderTreeShouldNotCountFutureMasteredAsReviewDue() {
+        UUID actorId = UUID.randomUUID();
+        User author = User.builder().id(actorId).email("user@example.com").passwordHash("hash").build();
+
+        Deck root = Deck.builder().id(UUID.randomUUID()).name("Root").author(author).build();
+        Card rootCard = Card.builder().id(UUID.randomUUID()).deck(root).build();
+
+        CardLearningState futureMastered = CardLearningState.builder()
+                .id(UUID.randomUUID())
+                .card(rootCard)
+                .user(author)
+                .state(CardLearningStateType.MASTERED)
+                .nextReviewDate(Instant.now().plusSeconds(3600))
+                .build();
+
+        when(deckCardAccessGuard.requireAuthenticatedUserId("read", "folder-tree", "self")).thenReturn(actorId);
+        when(deckRepository.findByAuthorId(actorId)).thenReturn(List.of(root));
+        when(cardRepository.findByDeckIdIn(List.of(root.getId()))).thenReturn(List.of(rootCard));
+        when(cardLearningStateRepository.findByUserIdAndCardIdIn(eq(actorId), any())).thenReturn(List.of(futureMastered));
+
+        List<FolderTreeResponse> tree = folderService.getFolderTree();
+
+        assertThat(tree).hasSize(1);
+        FolderTreeResponse rootNode = tree.get(0);
+        assertThat(rootNode.masteredCards()).isEqualTo(0);
+        assertThat(rootNode.learningCards()).isEqualTo(0);
+        assertThat(rootNode.newCards()).isEqualTo(0);
+        assertThat(rootNode.totalCards()).isEqualTo(0);
     }
 
     @Test
