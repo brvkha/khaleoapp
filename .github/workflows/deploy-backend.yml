@@ -188,7 +188,7 @@ jobs:
              RDS_DB_PASSWORD="${{ secrets.RDS_DB_PASSWORD || secrets.RDS_DB_PASSWORD_PROD }}"
              JWT_SECRET="${{ secrets.JWT_SECRET || secrets.JWT_SECRET_PROD || 'khaleoapp-default-secure-jwt-secret-for-fallback-32-bytes' }}"
 
-             # Create parameter array for SSM
+             # Create parameter array for SSM with proper escaping
              cat > /tmp/deploy_params.json <<'EOF'
              {
                "commands": [
@@ -197,25 +197,31 @@ jobs:
                  "docker login -u DOCKER_USER -p DOCKER_PASS",
                  "docker pull DOCKER_IMAGE:SHA",
                  "docker stop khaleo-backend 2>/dev/null || true && docker rm khaleo-backend 2>/dev/null || true",
-                 "docker run -d --restart unless-stopped --name khaleo-backend -p 8080:8080 -e SPRING_PROFILES_ACTIVE=prod -e SPRING_JPA_HIBERNATE_DDL_AUTO=validate -e DB_HOST=DB_HOST_VAL -e DB_NAME=DB_NAME_VAL -e DB_USERNAME=DB_USER_VAL -e DB_PASSWORD='DB_PASS_VAL' -e JWT_SECRET='JWT_VAL' DOCKER_IMAGE:SHA",
-                 "sleep 10",
-                 "docker ps --filter name=khaleo-backend",
-                 "docker logs --tail 50 khaleo-backend 2>&1 || echo 'Logs not available'",
-                 "curl -s http://127.0.0.1:8080/actuator/health | head -c 200 || echo 'Health check timeout'"
+                 "docker run -d --restart unless-stopped --name khaleo-backend -p 8080:8080 -e SPRING_PROFILES_ACTIVE=prod -e SPRING_JPA_HIBERNATE_DDL_AUTO=validate -e DB_HOST=DB_HOST_VAL -e DB_NAME=DB_NAME_VAL -e DB_USERNAME=DB_USER_VAL -e DB_PASSWORD=DB_PASS_VAL -e JWT_SECRET=JWT_VAL DOCKER_IMAGE:SHA",
+                 "sleep 15",
+                 "echo 'Container Status:' && docker ps -a --filter name=khaleo-backend",
+                 "echo 'Container Logs:' && docker logs --tail 100 khaleo-backend 2>&1",
+                 "echo 'Health Check:' && curl -v http://127.0.0.1:8080/actuator/health || echo 'Health check failed'"
                ]
              }
              EOF
 
-             # Replace parameters
+             # Replace parameters - use different sed delimiter to avoid issues with / in passwords
              sed -i "s|DOCKER_USER|${{ secrets.DOCKERHUB_USERNAME }}|g" /tmp/deploy_params.json
              sed -i "s|DOCKER_PASS|${{ secrets.DOCKERHUB_TOKEN }}|g" /tmp/deploy_params.json
              sed -i "s|DOCKER_IMAGE|${{ env.DOCKER_IMAGE_NAME }}|g" /tmp/deploy_params.json
              sed -i "s|SHA|${{ github.sha }}|g" /tmp/deploy_params.json
-             sed -i "s|DB_HOST_VAL|$RDS_HOST|g" /tmp/deploy_params.json
-             sed -i "s|DB_NAME_VAL|$RDS_DB_NAME|g" /tmp/deploy_params.json
-             sed -i "s|DB_USER_VAL|$RDS_DB_USER|g" /tmp/deploy_params.json
-             sed -i "s|DB_PASS_VAL|$RDS_DB_PASSWORD|g" /tmp/deploy_params.json
-             sed -i "s|JWT_VAL|$JWT_SECRET|g" /tmp/deploy_params.json
+             sed -i "s|DB_HOST_VAL|${RDS_HOST}|g" /tmp/deploy_params.json
+             sed -i "s|DB_NAME_VAL|${RDS_DB_NAME}|g" /tmp/deploy_params.json
+             sed -i "s|DB_USER_VAL|${RDS_DB_USER}|g" /tmp/deploy_params.json
+             # Escape special chars in password for sed
+             DB_PASS_ESCAPED=$(printf '%s\n' "$RDS_DB_PASSWORD" | sed -e 's/[\/&]/\\&/g')
+             sed -i "s|DB_PASS_VAL|${DB_PASS_ESCAPED}|g" /tmp/deploy_params.json
+             JWT_ESCAPED=$(printf '%s\n' "$JWT_SECRET" | sed -e 's/[\/&]/\\&/g')
+             sed -i "s|JWT_VAL|${JWT_ESCAPED}|g" /tmp/deploy_params.json
+             
+             echo "=== Deployment Config ===" 
+             cat /tmp/deploy_params.json
 
              # Send SSM command
              COMMAND_ID=$(aws ssm send-command \
