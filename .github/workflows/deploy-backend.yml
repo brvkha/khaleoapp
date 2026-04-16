@@ -188,16 +188,24 @@ jobs:
              RDS_DB_PASSWORD="${{ secrets.RDS_DB_PASSWORD || secrets.RDS_DB_PASSWORD_PROD }}"
              JWT_SECRET="${{ secrets.JWT_SECRET || secrets.JWT_SECRET_PROD || 'khaleoapp-default-secure-jwt-secret-for-fallback-32-bytes' }}"
 
-             # Create parameter array for SSM with proper escaping
-             cat > /tmp/deploy_params.json <<'EOF'
+             RUNTIME_ENV_B64=$(printf 'DB_URL=jdbc:mysql://%s:3306/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC\nDB_USERNAME=%s\nDB_PASSWORD=%s\nJWT_SECRET=%s\n' \
+               "$RDS_HOST" "$RDS_DB_NAME" "$RDS_DB_USER" "$RDS_DB_PASSWORD" "$JWT_SECRET" | base64 | tr -d '\r\n')
+
+             # Keep a local copy for traceability and parity with the runtime-secret flow.
+             cp backend/scripts/deploy-via-ssm.sh /tmp/deploy-via-ssm.sh
+
+             cat > /tmp/deploy_params.json <<EOF
              {
                "commands": [
-                 "set -ex",
+                 "set -euo pipefail",
+                 "mkdir -p /opt/khaleo/flashcard-backend",
+                 "printf '%s' '${RUNTIME_ENV_B64}' | base64 -d > /opt/khaleo/flashcard-backend/runtime-secrets.env",
+                 "chmod 600 /opt/khaleo/flashcard-backend/runtime-secrets.env",
                  "echo '=== Deploying Backend ===' && date",
-                 "docker login -u DOCKER_USER -p DOCKER_PASS",
-                 "docker pull DOCKER_IMAGE:SHA",
+                 "docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}",
+                 "docker pull ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
                  "docker stop khaleo-backend 2>/dev/null || true && docker rm khaleo-backend 2>/dev/null || true",
-                 "docker run -d --restart unless-stopped --name khaleo-backend -p 8080:8080 -e SPRING_PROFILES_ACTIVE=prod -e SPRING_JPA_HIBERNATE_DDL_AUTO=validate -e DB_HOST=DB_HOST_VAL -e DB_NAME=DB_NAME_VAL -e DB_USERNAME=DB_USER_VAL -e DB_PASSWORD=DB_PASS_VAL -e JWT_SECRET=JWT_VAL DOCKER_IMAGE:SHA",
+                 "docker run -d --restart unless-stopped --name khaleo-backend -p 8080:8080 --env-file /opt/khaleo/flashcard-backend/runtime-secrets.env -e SPRING_PROFILES_ACTIVE=prod -e SPRING_JPA_HIBERNATE_DDL_AUTO=validate ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}",
                  "sleep 15",
                  "echo 'Container Status:' && docker ps -a --filter name=khaleo-backend",
                  "echo 'Container Logs:' && docker logs --tail 100 khaleo-backend 2>&1",
@@ -206,24 +214,9 @@ jobs:
              }
              EOF
 
-             # Replace parameters - use different sed delimiter to avoid issues with / in passwords
-             sed -i "s|DOCKER_USER|${{ secrets.DOCKERHUB_USERNAME }}|g" /tmp/deploy_params.json
-             sed -i "s|DOCKER_PASS|${{ secrets.DOCKERHUB_TOKEN }}|g" /tmp/deploy_params.json
-             sed -i "s|DOCKER_IMAGE|${{ env.DOCKER_IMAGE_NAME }}|g" /tmp/deploy_params.json
-             sed -i "s|SHA|${{ github.sha }}|g" /tmp/deploy_params.json
-             sed -i "s|DB_HOST_VAL|${RDS_HOST}|g" /tmp/deploy_params.json
-             sed -i "s|DB_NAME_VAL|${RDS_DB_NAME}|g" /tmp/deploy_params.json
-             sed -i "s|DB_USER_VAL|${RDS_DB_USER}|g" /tmp/deploy_params.json
-             # Escape special chars in password for sed
-             DB_PASS_ESCAPED=$(printf '%s\n' "$RDS_DB_PASSWORD" | sed -e 's/[\/&]/\\&/g')
-             sed -i "s|DB_PASS_VAL|${DB_PASS_ESCAPED}|g" /tmp/deploy_params.json
-             JWT_ESCAPED=$(printf '%s\n' "$JWT_SECRET" | sed -e 's/[\/&]/\\&/g')
-             sed -i "s|JWT_VAL|${JWT_ESCAPED}|g" /tmp/deploy_params.json
-             
-             echo "=== Deployment Config ===" 
+             echo "=== Deployment Config ==="
              cat /tmp/deploy_params.json
 
-             # Send SSM command
              COMMAND_ID=$(aws ssm send-command \
                --instance-ids "${{ steps.resolve_instance.outputs.instance_id }}" \
                --document-name "AWS-RunShellScript" \
