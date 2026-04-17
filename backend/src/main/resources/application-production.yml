@@ -1,33 +1,98 @@
 spring:
   config:
-    # Import secret từ file bên ngoài server (Rất tốt cho bảo mật)
+    activate:
+      on-profile: production
     import: optional:file:/opt/khaleo/flashcard-backend/runtime-secrets.env[.properties]
 
   datasource:
-    # Ở prod thường dùng connection pool lớn hơn hoặc cấu hình DB chặt chẽ hơn
-    hikari:
-      maximum-pool-size: 20
+    url: ${DB_URL:jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:khaleoapp}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
-    show-sql: false # Tắt log SQL ở prod để tăng performance
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
     properties:
       hibernate:
-        format_sql: false
+        type:
+          preferred_uuid_jdbc_type: CHAR
+        format_sql: true
+
+  flyway:
+    enabled: true
+    clean-disabled: false
+    validate-on-migrate: false
+    locations: classpath:db/migration
 
 logging:
   level:
-    org.flywaydb: INFO # Giảm bớt log ở prod
-    org.hibernate.SQL: ERROR
+    org.flywaydb: DEBUG
+    org.hibernate.SQL: DEBUG
+  config: classpath:logback-spring.xml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
 
 app:
   runtime-secrets:
     db-secret-id: ${DB_SECRET_ID:khaleo/prod/db-credentials}
     jwt-secret-id: ${JWT_SECRET_ID:khaleo/prod/jwt-secret}
     ses-secret-id: ${SES_SECRET_ID:khaleo/prod/ses-credentials}
-
+  study:
+    next-cards:
+      default-page-size: ${STUDY_NEXT_CARDS_DEFAULT_PAGE_SIZE:20}
+      max-page-size: ${STUDY_NEXT_CARDS_MAX_PAGE_SIZE:100}
+  dynamo:
+    region: ${AWS_REGION:us-east-1}
+    endpoint: ${DYNAMODB_ENDPOINT:}
+    study-activity-log-table: ${STUDY_ACTIVITY_LOG_TABLE:StudyActivityLog}
+  media:
+    s3:
+      bucket: ${MEDIA_S3_BUCKET:khaleo-media}
+      key-prefix: ${MEDIA_S3_KEY_PREFIX:uploads}
+      region: ${MEDIA_S3_REGION:${AWS_REGION:us-east-1}}
+      endpoint: ${MEDIA_S3_ENDPOINT:}
+      presigned-url-ttl-seconds: ${MEDIA_PRESIGNED_URL_TTL_SECONDS:300}
+      max-size-bytes: ${MEDIA_MAX_SIZE_BYTES:5242880}
+    authz:
+      requests-per-minute: ${MEDIA_AUTHZ_REQUESTS_PER_MINUTE:30}
+      allowed-content-types: ${MEDIA_ALLOWED_CONTENT_TYPES:image/jpeg,image/png,audio/mpeg,audio/webm}
   auth:
     jwt:
-      # Ở prod BẮT BUỘC phải đổi secret qua biến môi trường, không dùng default "change-me"
-      secret: ${JWT_SECRET}
+      issuer: ${JWT_ISSUER:khaleo}
+      access-token-ttl-minutes: ${JWT_ACCESS_TOKEN_TTL_MINUTES:15}
+      refresh-token-ttl-days: ${JWT_REFRESH_TOKEN_TTL_DAYS:7}
+      secret: ${JWT_SECRET:change-me-dev-secret-change-me-dev-secret}
+    lockout:
+      max-failed-attempts: ${AUTH_LOCKOUT_MAX_FAILED_ATTEMPTS:5}
+      duration-seconds: ${AUTH_LOCKOUT_DURATION_SECONDS:900}
     email:
-      provider: ${APP_EMAIL_PROVIDER:mock} # Chuyển từ mock sang AWS SES thực tế
+      verification-required: ${APP_AUTH_EMAIL_VERIFICATION_REQUIRED:true}
+      provider: ${APP_EMAIL_PROVIDER:mock}
+      from: ${AUTH_EMAIL_FROM:no-reply@khaleoshop.click}
+      verification-base-url: ${AUTH_VERIFICATION_BASE_URL:https://app.khaleoshop.click/verify}
+      reset-base-url: ${AUTH_RESET_BASE_URL:https://app.khaleoshop.click/reset-password}
+  observability:
+    splunk:
+      enabled: ${SPLUNK_ENABLED:false}
+      hec-url: ${SPLUNK_HEC_URL:http://localhost:8088/services/collector/event}
+      hec-token: ${SPLUNK_HEC_TOKEN:disabled-token}
+      source: ${SPLUNK_SOURCE:flashcard-backend}
+      source-type: ${SPLUNK_SOURCE_TYPE:kha-leo:backend}
+      index: ${SPLUNK_INDEX:main}
+    newrelic:
+      agent-enabled: ${NEW_RELIC_AGENT_ENABLED:false}
+      app-name: ${NEW_RELIC_APP_NAME:flashcard-backend}
+  rich-card:
+    image:
+      allowlist-hosts: ${RICH_CARD_IMAGE_ALLOWLIST_HOSTS:images.unsplash.com,cdn.pixabay.com,upload.wikimedia.org}
+    limits:
+      max-examples: ${RICH_CARD_MAX_EXAMPLES:20}
+      max-example-length: ${RICH_CARD_MAX_EXAMPLE_LENGTH:300}
+      max-payload-bytes: ${RICH_CARD_MAX_PAYLOAD_BYTES:65536}
+
