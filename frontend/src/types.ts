@@ -18,6 +18,8 @@ export type Deck = {
 export type Card = {
   id: string
   deckId: string
+  frontContent: string
+  backContent: string
   term: string
   answer: string
   imageUrl?: string | null

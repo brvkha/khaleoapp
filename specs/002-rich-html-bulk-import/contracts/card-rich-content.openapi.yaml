@@ -96,8 +96,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BulkCreateCardsResponse'
+              examples:
+                partialSuccess:
+                  value:
+                    successCount: 2
+                    failedCount: 1
+                    errors:
+                      - line: 14
+                        code: FRONT_REQUIRED
+                        message: FRONT_REQUIRED
         '400':
           description: Request-level validation failure (e.g. cards length > 500)
+          content:
+            application/json:
+              examples:
+                tooManyCards:
+                  value:
+                    status: 400
+                    message: "cards: size must be between 1 and 500"
 components:
   schemas:
     CanonicalCardWriteRequest:

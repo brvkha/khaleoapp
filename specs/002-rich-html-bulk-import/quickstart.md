@@ -59,3 +59,13 @@ npm test
 npm run test:e2e:list
 ```
 
+## 5) Chunking verification walkthrough
+1. Paste at least 501 non-blank rows in Add Card -> Bulk import and click Preview.
+2. Confirm candidate count > 500 and progress starts at `saved 0/Y`.
+3. Submit and verify requests are sent sequentially in <=500-card chunks.
+4. Simulate a mid-run request failure and verify:
+   - progress halts immediately,
+   - banner shows failed line range `lines start-end`,
+   - earlier chunk results remain counted in `saved X/Y`.
+5. Click retry and confirm execution resumes from failed chunk index without resending prior successful chunks.
+

@@ -74,8 +74,8 @@ class RichCardContractTest extends IntegrationPersistenceTestBase {
                 .getResponse()
                 .getContentAsString();
 
-        assertThat(response).contains("term");
-        assertThat(response).contains("answer");
+        assertThat(response).contains("frontContent");
+        assertThat(response).contains("backContent");
         assertThat(response).contains("examples");
         assertThat(response).contains("version");
     }
@@ -103,6 +103,9 @@ class RichCardContractTest extends IntegrationPersistenceTestBase {
         Deck deck = saveDeck(owner);
         Card card = cardRepository.saveAndFlush(Card.builder()
                 .deck(deck)
+                .frontContent("<p>Old term</p>")
+                .backContent("<p>Old answer</p>")
+                .searchText("old term old answer")
                 .frontText("Old term")
                 .backText("Old answer")
                 .examplesJson("[]")

@@ -21,6 +21,8 @@ import com.khaleo.flashcard.repository.ReimportMergeConflictRepository;
 import com.khaleo.flashcard.repository.UserRepository;
 import com.khaleo.flashcard.service.activitylog.StudyActivityLogPublisher;
 import com.khaleo.flashcard.service.media.MediaReferenceService;
+import com.khaleo.flashcard.service.persistence.CardHtmlSanitizer;
+import com.khaleo.flashcard.service.persistence.CardSearchTextBuilder;
 import com.khaleo.flashcard.service.persistence.CardLearningStateUpdateService;
 import com.khaleo.flashcard.service.persistence.DeckCardAccessGuard;
 import com.khaleo.flashcard.service.persistence.PersistenceValidationException;
@@ -53,6 +55,11 @@ class RelationalPersistenceCardServiceTest {
         PersistenceValidationExceptionMapper exceptionMapper = new PersistenceValidationExceptionMapper();
         CardLearningStateUpdateService cardLearningStateUpdateService = Mockito.mock(CardLearningStateUpdateService.class);
         deckCardAccessGuard = Mockito.mock(DeckCardAccessGuard.class);
+        CardHtmlSanitizer cardHtmlSanitizer = new CardHtmlSanitizer(
+                "",
+                "p,br,strong,em,u,img,audio,source,ul,ol,li,span,div",
+                "class,src,alt,controls,type");
+        CardSearchTextBuilder cardSearchTextBuilder = new CardSearchTextBuilder();
         mediaReferenceService = Mockito.mock(MediaReferenceService.class);
         NewRelicDeckMediaInstrumentation instrumentation = Mockito.mock(NewRelicDeckMediaInstrumentation.class);
         FeatureTelemetryLogger telemetryLogger = Mockito.mock(FeatureTelemetryLogger.class);
@@ -68,6 +75,8 @@ class RelationalPersistenceCardServiceTest {
                 exceptionMapper,
                 cardLearningStateUpdateService,
                 deckCardAccessGuard,
+                cardHtmlSanitizer,
+                cardSearchTextBuilder,
                 mediaReferenceService,
                 instrumentation,
                 telemetryLogger);
@@ -113,7 +122,7 @@ class RelationalPersistenceCardServiceTest {
         assertThatThrownBy(() -> relationalPersistenceService.createCard(deckId, request))
                 .isInstanceOf(PersistenceValidationException.class)
                 .satisfies(ex -> assertThat(((PersistenceValidationException) ex).getErrorCode())
-                        .isEqualTo(PersistenceValidationException.PersistenceErrorCode.INVALID_CARD_CONTENT));
+                        .isEqualTo(PersistenceValidationException.PersistenceErrorCode.VALIDATION_REJECTED));
 
         verify(cardRepository, never()).save(any(Card.class));
     }
@@ -130,7 +139,7 @@ class RelationalPersistenceCardServiceTest {
         assertThatThrownBy(() -> relationalPersistenceService.createCard(deckId, request))
                 .isInstanceOf(PersistenceValidationException.class)
                 .satisfies(ex -> assertThat(((PersistenceValidationException) ex).getErrorCode())
-                        .isEqualTo(PersistenceValidationException.PersistenceErrorCode.INVALID_CARD_CONTENT));
+                        .isEqualTo(PersistenceValidationException.PersistenceErrorCode.VALIDATION_REJECTED));
 
         verify(cardRepository, never()).save(any(Card.class));
         verify(deckCardAccessGuard).ensureOwnerOrAdmin(eq(deck.getAuthor().getId()), eq("create"), eq("card"), eq(deckId.toString()));

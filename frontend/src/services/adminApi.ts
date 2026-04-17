@@ -210,3 +210,18 @@ export async function testFSRSAlgorithm(request: FSRSTestRequest): Promise<FSRST
     body: JSON.stringify(request),
   })
 }
+
+export async function updateAdminCard(payload: {
+  cardId: string
+  frontContent: string
+  backContent: string
+}): Promise<void> {
+  await requestJson(`/api/v1/admin/cards/${payload.cardId}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      frontContent: payload.frontContent,
+      backContent: payload.backContent,
+    }),
+  })
+}
+

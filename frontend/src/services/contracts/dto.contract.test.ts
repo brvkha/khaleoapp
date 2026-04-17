@@ -23,8 +23,8 @@ describe('contract drift checks', () => {
           {
             id: 'c1',
             deckId: 'd1',
-            term: 'Term',
-            answer: 'Answer',
+            frontContent: '<p>Term</p>',
+            backContent: '<p>Answer</p>',
             examples: ['core'],
             version: 1,
           },
@@ -38,8 +38,8 @@ describe('contract drift checks', () => {
           {
             id: 'c2',
             deckId: '',
-            term: 'Term',
-            answer: 'Answer',
+            frontContent: '<p>Term</p>',
+            backContent: '<p>Answer</p>',
             examples: [],
             version: 0,
           },

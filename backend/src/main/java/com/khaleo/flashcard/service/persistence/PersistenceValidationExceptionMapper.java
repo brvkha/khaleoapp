@@ -1,5 +1,6 @@
 package com.khaleo.flashcard.service.persistence;
 
+import com.khaleo.flashcard.controller.card.dto.BulkRowErrorCode;
 import com.khaleo.flashcard.service.persistence.PersistenceValidationException.PersistenceErrorCode;
 import java.util.Locale;
 import java.util.UUID;
@@ -176,6 +177,25 @@ public class PersistenceValidationExceptionMapper {
                 "Invalid pagination request page=" + page + " size=" + size,
                 null,
                 "persistence_rejected_invalid_pagination");
+    }
+
+    public BulkRowErrorCode mapBulkRowErrorCode(Throwable throwable) {
+        String detail = extractDetail(throwable);
+        String lower = detail == null ? "" : detail.toLowerCase(Locale.ROOT);
+
+        if (containsAny(lower, "row_too_few_columns")) {
+            return BulkRowErrorCode.ROW_TOO_FEW_COLUMNS;
+        }
+        if (containsAny(lower, "front_required")) {
+            return BulkRowErrorCode.FRONT_REQUIRED;
+        }
+        if (containsAny(lower, "back_required")) {
+            return BulkRowErrorCode.BACK_REQUIRED;
+        }
+        if (containsAny(lower, "media_domain_not_allowed", "image_host_not_allowed")) {
+            return BulkRowErrorCode.MEDIA_DOMAIN_NOT_ALLOWED;
+        }
+        return BulkRowErrorCode.HTML_UNRECOVERABLE;
     }
 
     private RuntimeException logged(

@@ -10,8 +10,9 @@ type RichCardContentProps = {
 export function RichCardContent({ card, revealed }: RichCardContentProps) {
   const examplesRef = useRef<HTMLDivElement | null>(null)
 
-  const term = useMemo(() => card.term ?? card.frontText, [card.frontText, card.term])
-  const answer = useMemo(() => card.answer ?? card.backText, [card.answer, card.backText])
+  const frontContent = useMemo(() => card.frontContent ?? card.frontText, [card.frontContent, card.frontText])
+  const backContent = useMemo(() => card.backContent ?? card.backText, [card.backContent, card.backText])
+  const term = useMemo(() => card.term ?? frontContent, [frontContent, card.term])
   const examples = useMemo(() => card.examples ?? [], [card.examples])
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export function RichCardContent({ card, revealed }: RichCardContentProps) {
     return (
       <div className="space-y-4">
         <div className="min-h-48 flex items-center justify-center text-center">
-          <p className="text-3xl font-semibold text-slate-900">{term}</p>
+          <StudyCardImage htmlContent={frontContent} />
         </div>
         {card.imageUrl ? <StudyCardImage imageUrl={card.imageUrl} alt={term} /> : null}
       </div>
@@ -33,9 +34,9 @@ export function RichCardContent({ card, revealed }: RichCardContentProps) {
 
   return (
     <div className="space-y-3" data-testid="rich-card-back-content">
-      <p className="text-2xl font-semibold text-slate-900">{term}</p>
+      <StudyCardImage htmlContent={frontContent} />
       {card.imageUrl ? <StudyCardImage imageUrl={card.imageUrl} alt={term} /> : null}
-      <p className="text-xl text-slate-700">{answer}</p>
+      <StudyCardImage htmlContent={backContent} />
       {card.phonetic || card.partOfSpeech ? (
         <div className="text-sm text-slate-600" data-testid="rich-card-metadata">
           {card.phonetic ? <p>Phonetic: {card.phonetic}</p> : null}

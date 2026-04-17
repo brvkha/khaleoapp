@@ -23,6 +23,8 @@ const initialCards: Card[] = [
   {
     id: 'card-1',
     deckId: 'deck-1',
+    frontContent: 'abandon',
+    backContent: 'to leave behind',
     term: 'abandon',
     answer: 'to leave behind',
     front: 'abandon',
@@ -35,6 +37,8 @@ const initialCards: Card[] = [
   {
     id: 'card-2',
     deckId: 'deck-1',
+    frontContent: 'resilient',
+    backContent: 'able to recover quickly',
     term: 'resilient',
     answer: 'able to recover quickly',
     front: 'resilient',
@@ -47,6 +51,8 @@ const initialCards: Card[] = [
   {
     id: 'card-3',
     deckId: 'deck-2',
+    frontContent: 'Mitochondria',
+    backContent: 'Powerhouse of the cell',
     term: 'Mitochondria',
     answer: 'Powerhouse of the cell',
     front: 'Mitochondria',
@@ -83,14 +89,39 @@ export const useLearningStore = create<LearningState>((set) => ({
     set((state) => ({
       cards: [
         ...state.cards,
-        { id: crypto.randomUUID(), deckId, term, answer, front: term, back: answer, tags, examples: [], version: 0, due: true },
+        {
+          id: crypto.randomUUID(),
+          deckId,
+          frontContent: term,
+          backContent: answer,
+          term,
+          answer,
+          front: term,
+          back: answer,
+          tags,
+          examples: [],
+          version: 0,
+          due: true,
+        },
       ],
     }))
   },
   updateCard: (cardId, term, answer, tags) => {
     set((state) => ({
       cards: state.cards.map((card) =>
-        card.id === cardId ? { ...card, term, answer, front: term, back: answer, tags, version: (card.version ?? 0) + 1 } : card,
+        card.id === cardId
+          ? {
+              ...card,
+              frontContent: term,
+              backContent: answer,
+              term,
+              answer,
+              front: term,
+              back: answer,
+              tags,
+              version: (card.version ?? 0) + 1,
+            }
+          : card,
       ),
     }))
   },

@@ -72,12 +72,19 @@ app:
       max-failed-attempts: ${AUTH_LOCKOUT_MAX_FAILED_ATTEMPTS:5}
       duration-seconds: ${AUTH_LOCKOUT_DURATION_SECONDS:900}
   rich-card:
+    enabled: ${RICH_CARD_ENABLED:true}
     image:
       allowlist-hosts: ${RICH_CARD_IMAGE_ALLOWLIST_HOSTS:images.unsplash.com,cdn.pixabay.com,upload.wikimedia.org}
+    media:
+      allowlist-hosts: ${RICH_CARD_MEDIA_ALLOWLIST_HOSTS:images.unsplash.com,cdn.pixabay.com,upload.wikimedia.org}
+    sanitizer:
+      allowed-tags: ${RICH_CARD_ALLOWED_TAGS:p,br,strong,em,u,img,audio,source,ul,ol,li,span,div}
+      allowed-attributes: ${RICH_CARD_ALLOWED_ATTRIBUTES:class,src,alt,controls,type}
     limits:
       max-examples: ${RICH_CARD_MAX_EXAMPLES:20}
       max-example-length: ${RICH_CARD_MAX_EXAMPLE_LENGTH:300}
       max-payload-bytes: ${RICH_CARD_MAX_PAYLOAD_BYTES:65536}
+      bulk-max-cards: ${RICH_CARD_BULK_MAX_CARDS:500}
 
 ---
 spring:

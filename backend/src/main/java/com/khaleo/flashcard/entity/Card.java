@@ -44,11 +44,20 @@ public class Card extends BaseAuditableEntity {
     @Column(name = "front_text", columnDefinition = "text")
     private String frontText;
 
+    @Column(name = "front_content", columnDefinition = "text")
+    private String frontContent;
+
     @Column(name = "front_media_url", length = 2048)
     private String frontMediaUrl;
 
     @Column(name = "back_text", columnDefinition = "text")
     private String backText;
+
+    @Column(name = "back_content", columnDefinition = "text")
+    private String backContent;
+
+    @Column(name = "search_text", columnDefinition = "text")
+    private String searchText;
 
     @Column(name = "back_media_url", length = 2048)
     private String backMediaUrl;
@@ -79,16 +88,38 @@ public class Card extends BaseAuditableEntity {
     @PreUpdate
     void validateSides() {
         frontText = normalize(frontText);
+        frontContent = normalize(frontContent);
         frontMediaUrl = normalize(frontMediaUrl);
         backText = normalize(backText);
+        backContent = normalize(backContent);
+        searchText = normalize(searchText);
         backMediaUrl = normalize(backMediaUrl);
         imageUrl = normalize(imageUrl);
         partOfSpeech = normalize(partOfSpeech);
         phonetic = normalize(phonetic);
         examplesJson = normalizeExamplesJson(examplesJson);
 
-        boolean hasFrontContent = hasValue(frontText) || hasValue(frontMediaUrl);
-        boolean hasBackContent = hasValue(backText) || hasValue(backMediaUrl);
+        if (frontContent == null) {
+            frontContent = firstNonBlank(frontText, frontMediaUrl);
+        }
+        if (backContent == null) {
+            backContent = firstNonBlank(backText, backMediaUrl);
+        }
+
+        if (frontText == null) {
+            frontText = frontContent;
+        }
+        if (backText == null) {
+            backText = backContent;
+        }
+
+        if (searchText == null) {
+            searchText = buildSearchText(frontContent, backContent, frontText, backText);
+        }
+
+        // Canonical HTML is primary; fallback keeps legacy rows valid during migration/backfill windows.
+        boolean hasFrontContent = hasValue(frontContent) || hasValue(frontText) || hasValue(frontMediaUrl);
+        boolean hasBackContent = hasValue(backContent) || hasValue(backText) || hasValue(backMediaUrl);
 
         if (!hasFrontContent || !hasBackContent) {
             throw new IllegalStateException(
@@ -115,19 +146,63 @@ public class Card extends BaseAuditableEntity {
         return value;
     }
 
+    private String buildSearchText(String... values) {
+        StringBuilder builder = new StringBuilder();
+        for (String value : values) {
+            String normalized = stripHtml(normalize(value));
+            if (normalized == null) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append(' ');
+            }
+            builder.append(normalized);
+        }
+        String result = builder.toString().trim().replaceAll("\\s+", " ");
+        return result.isEmpty() ? null : result.toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private String stripHtml(String value) {
+        if (value == null) {
+            return null;
+        }
+        String stripped = value
+                .replaceAll("<[^>]+>", " ")
+                .replace("&nbsp;", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        return stripped.isEmpty() ? null : stripped;
+    }
+
+    private static String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first;
+        }
+        if (second != null && !second.isBlank()) {
+            return second;
+        }
+        return null;
+    }
+
     public String getTerm() {
-        return frontText;
+        return hasValue(frontContent) ? frontContent : frontText;
     }
 
     public void setTerm(String term) {
         this.frontText = term;
+        if (!hasValue(this.frontContent)) {
+            this.frontContent = term;
+        }
     }
 
     public String getAnswer() {
-        return backText;
+        return hasValue(backContent) ? backContent : backText;
     }
 
     public void setAnswer(String answer) {
         this.backText = answer;
+        if (!hasValue(this.backContent)) {
+            this.backContent = answer;
+        }
     }
 }

@@ -38,6 +38,14 @@ Environment:
 - [ ] Trigger invalid card payload and verify HTTP 400 validation response
 - [ ] Verify CORS is not blocked for frontend -> backend requests
 
+## Flow 4 - Rich HTML + Bulk Chunk Import
+- [ ] Open Add Card modal and switch to `Single card`
+- [ ] Create a card using rich HTML in front/back and verify study renders sanitized content
+- [ ] Switch to `Bulk import`, paste >500 candidate rows, click preview, confirm candidate count
+- [ ] Submit bulk import and verify progress label updates as `saved X/Y`
+- [ ] Simulate middle-chunk request failure and verify run halts with `lines start-end` range
+- [ ] Click retry and verify import resumes from failed chunk (prior successful chunks not resent)
+
 ## Evidence Collection
 - [ ] Screenshot: successful login
 - [ ] Screenshot: created deck + created card

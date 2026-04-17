@@ -10,8 +10,8 @@ import java.util.UUID;
 public record CardResponse(
         UUID id,
         UUID deckId,
-        String term,
-        String answer,
+        String frontContent,
+        String backContent,
         String imageUrl,
         String partOfSpeech,
         String phonetic,
@@ -30,8 +30,8 @@ public record CardResponse(
         return new CardResponse(
                 card.getId(),
                 card.getDeck().getId(),
-                card.getTerm(),
-                card.getAnswer(),
+                card.getFrontContent(),
+                card.getBackContent(),
                 card.getImageUrl(),
                 card.getPartOfSpeech(),
                 card.getPhonetic(),

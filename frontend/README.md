@@ -67,3 +67,18 @@ Notes:
 - If media validation behaves unexpectedly, check `VITE_MEDIA_MAX_MB`.
 - If admin routes redirect away, log in with an email containing `admin` in local mock auth.
 - If browser binaries are missing for E2E, run `npx playwright install chromium`.
+
+## Bulk Import Chunking Model
+
+- Frontend parses textarea input and preserves original line numbers (blank lines excluded from candidates).
+- Candidate rows are split into sequential chunks of max `500` (`MAX_BULK_CHUNK_SIZE`).
+- Progress is cumulative and shown as `saved X/Y` where `X` updates only after each chunk response.
+- A request-level failure halts dispatch immediately and shows failed line range (`lines start-end`).
+- Retry resumes from failed chunk index only; successful prior chunks are not resent.
+
+### Chunking Troubleshooting
+
+- If import halts unexpectedly, inspect failed range banner and API/network error.
+- If backend returns `400` for a chunk, verify request payload size and row envelope shape.
+- If duplicate cards appear after manual full rerun, use retry-from-failed-range to avoid resending prior chunks.
+
