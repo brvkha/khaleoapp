@@ -30,6 +30,7 @@ describe('route guards', () => {
       ...useAuthStore.getState(),
       currentUser: {
         id: 'u1',
+        username: 'u1',
         email: 'user@khaleo.app',
         role: 'USER',
         verified: true,
@@ -46,6 +47,7 @@ describe('route guards', () => {
       currentUser: {
         id: 'u2',
         username: 'u2',
+        email: 'user2@khaleo.app',
         role: 'USER',
         verified: true,
         banned: false,
