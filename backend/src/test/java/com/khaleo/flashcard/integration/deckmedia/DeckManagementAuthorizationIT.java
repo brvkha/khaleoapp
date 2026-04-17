@@ -107,6 +107,7 @@ class DeckManagementAuthorizationIT extends IntegrationPersistenceTestBase {
     private User saveUser(String email, UserRole role) {
         return userRepository.saveAndFlush(User.builder()
                 .email(email)
+                .username(email.substring(0, email.indexOf('@')))
                 .passwordHash("hash")
                 .role(role)
                 .isEmailVerified(true)

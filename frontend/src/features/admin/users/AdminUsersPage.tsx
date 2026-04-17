@@ -12,7 +12,7 @@ export function AdminUsersPage() {
   const [page, setPage] = useState(0)
   const [size, setSize] = useState(10)
   const [totalPages, setTotalPages] = useState(0)
-  const [sortBy, setSortBy] = useState<'createdAt' | 'email' | 'role' | 'bannedAt'>('createdAt')
+  const [sortBy, setSortBy] = useState<'createdAt' | 'username' | 'role' | 'bannedAt'>('createdAt')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [loading, setLoading] = useState(false)
 
@@ -43,7 +43,7 @@ export function AdminUsersPage() {
     }
 
     const verb = action === 'ban' ? 'Ban' : 'Unban'
-    if (!window.confirm(`${verb} user ${candidate.email}?`)) {
+    if (!window.confirm(`${verb} user ${candidate.username}?`)) {
       return
     }
 
@@ -53,7 +53,7 @@ export function AdminUsersPage() {
       } else {
         await unbanAdminUser(candidate.id)
       }
-      pushSuccess(`Đã ${action === 'ban' ? 'ban' : 'unban'} user ${candidate.email}.`)
+      pushSuccess(`Đã ${action === 'ban' ? 'ban' : 'unban'} user ${candidate.username}.`)
       await loadUsers(query, page)
     } catch (err) {
       console.error('admin_user_ban_failed', err)
@@ -67,7 +67,7 @@ export function AdminUsersPage() {
         <div className="grid gap-2 md:grid-cols-4">
           <input
             className="rounded border border-slate-300 px-3 py-2 text-sm"
-            placeholder="Tìm theo email"
+            placeholder="Tim theo username"
             value={query}
             onChange={(event) => {
               setQuery(event.target.value)
@@ -78,12 +78,12 @@ export function AdminUsersPage() {
             className="rounded border border-slate-300 px-3 py-2 text-sm"
             value={sortBy}
             onChange={(event) => {
-              setSortBy(event.target.value as 'createdAt' | 'email' | 'role' | 'bannedAt')
+              setSortBy(event.target.value as 'createdAt' | 'username' | 'role' | 'bannedAt')
               setPage(0)
             }}
           >
             <option value="createdAt">Sort: Created At</option>
-            <option value="email">Sort: Email</option>
+            <option value="username">Sort: Username</option>
             <option value="role">Sort: Role</option>
             <option value="bannedAt">Sort: Banned At</option>
           </select>
@@ -119,7 +119,7 @@ export function AdminUsersPage() {
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-700">
             <tr>
-              <th className="p-3">Email</th>
+              <th className="p-3">Username</th>
               <th className="p-3">Role</th>
               <th className="p-3">Status</th>
               <th className="p-3 text-right">Action</th>
@@ -128,7 +128,7 @@ export function AdminUsersPage() {
           <tbody>
             {users.map((user, index) => (
               <tr key={user.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                <td className="p-3">{user.email}</td>
+                <td className="p-3">{user.username}</td>
                 <td className="p-3">{user.role}</td>
                 <td className="p-3">{user.banned ? 'BANNED' : 'ACTIVE'}</td>
                 <td className="p-3 text-right">

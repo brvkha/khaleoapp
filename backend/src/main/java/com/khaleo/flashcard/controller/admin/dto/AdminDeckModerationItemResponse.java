@@ -6,7 +6,7 @@ import java.util.UUID;
 public record AdminDeckModerationItemResponse(
         UUID id,
         String name,
-        String ownerEmail,
+        String ownerUsername,
         boolean isPublic,
         boolean banned,
         long cardCount,

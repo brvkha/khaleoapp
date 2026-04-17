@@ -13,11 +13,19 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByUsername(String username);
+
+    Optional<User> findByUsernameOrEmail(String username, String email);
+
     boolean existsByEmail(String email);
+
+    boolean existsByUsername(String username);
 
     @Query("""
             select u from User u
-            where (:queryText is null or lower(coalesce(u.email, '')) like lower(concat('%', :queryText, '%')))
+            where (:queryText is null
+                or lower(coalesce(u.username, '')) like lower(concat('%', :queryText, '%'))
+                or lower(coalesce(u.email, '')) like lower(concat('%', :queryText, '%')))
             """)
     Page<User> searchForAdmin(@Param("queryText") String queryText, Pageable pageable);
 }

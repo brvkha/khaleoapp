@@ -4,6 +4,7 @@ import com.khaleo.flashcard.entity.RefreshToken;
 import com.khaleo.flashcard.entity.User;
 import com.khaleo.flashcard.repository.RefreshTokenRepository;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -44,7 +45,14 @@ public class TokenRefreshService {
             throw new AuthDomainException(HttpStatus.FORBIDDEN, AuthErrorCode.BANNED_USER_REQUEST_DENIED, "Banned account access denied.");
         }
 
-        String accessToken = jwtTokenService.createAccessToken(user.getId().toString(), Map.of("role", user.getRole().name()));
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", user.getRole().name());
+        claims.put("username", user.getUsername());
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            claims.put("email", user.getEmail());
+        }
+
+        String accessToken = jwtTokenService.createAccessToken(user.getId().toString(), claims);
         authAuditLogger.logEvent("auth_refresh_success", Map.of("userId", user.getId()));
         return new RefreshResult(accessToken, jwtTokenService.accessTokenTtlSeconds());
     }

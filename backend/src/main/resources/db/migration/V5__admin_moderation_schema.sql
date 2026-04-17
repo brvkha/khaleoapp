@@ -1,8 +1,3 @@
-ALTER TABLE users
-    ADD COLUMN banned_at TIMESTAMP(6) NULL,
-    ADD COLUMN banned_by CHAR(36) NULL,
-    ADD CONSTRAINT fk_users_banned_by FOREIGN KEY (banned_by) REFERENCES users (id);
-
 CREATE TABLE admin_moderation_actions (
     id CHAR(36) NOT NULL,
     admin_user_id CHAR(36) NOT NULL,

@@ -42,6 +42,7 @@ class CardLearningStateUniquenessIT extends IntegrationPersistenceTestBase {
     void shouldRejectDuplicateActiveLearningStateForSameUserAndCard() {
         User user = userRepository.save(User.builder()
                 .email("state-user@example.com")
+                .username("state_user")
                 .passwordHash("hash")
                 .build());
 

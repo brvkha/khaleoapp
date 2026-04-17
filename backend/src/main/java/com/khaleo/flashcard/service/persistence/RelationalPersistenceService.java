@@ -76,6 +76,7 @@ public class RelationalPersistenceService {
     public User createUser(CreateUserRequest request) {
         try {
             User user = User.builder()
+                    .username(deriveUsername(request.email()))
                     .email(request.email())
                     .passwordHash(request.passwordHash())
                     .dailyLearningLimit(request.dailyLearningLimit())
@@ -88,6 +89,20 @@ public class RelationalPersistenceService {
             log.error("event=relational_user_create_failed email={} reason={}", request.email(), ex.getMessage(), ex);
             throw exceptionMapper.mapCreateUserFailure(ex, request.email());
         }
+    }
+
+    private String deriveUsername(String email) {
+        if (email != null) {
+            String normalized = email.trim().toLowerCase(Locale.ROOT);
+            int atIndex = normalized.indexOf('@');
+            if (atIndex > 0) {
+                return normalized.substring(0, atIndex);
+            }
+            if (!normalized.isBlank()) {
+                return normalized;
+            }
+        }
+        return "user_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
     }
 
     public Deck createDeck(UUID authorId, CreateDeckRequest request) {

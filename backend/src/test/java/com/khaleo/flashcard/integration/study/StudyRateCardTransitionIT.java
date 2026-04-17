@@ -63,7 +63,7 @@ class StudyRateCardTransitionIT extends IntegrationPersistenceTestBase {
         assertThat(first.state()).isEqualTo(CardLearningStateType.LEARNING);
 
         RateCardResponse second = studyRatingService.rateCard(card.getId(), new RateCardRequest(RatingGiven.GOOD, 800L));
-        assertThat(second.state()).isEqualTo(CardLearningStateType.REVIEW);
+        assertThat(second.state()).isEqualTo(CardLearningStateType.MASTERED);
         assertThat(second.scheduledDays()).isGreaterThanOrEqualTo(1);
         assertThat(second.newStability()).isPositive();
         assertThat(second.newDifficulty()).isPositive();
@@ -96,6 +96,7 @@ class StudyRateCardTransitionIT extends IntegrationPersistenceTestBase {
     private User saveUser(String email) {
         return userRepository.saveAndFlush(User.builder()
                 .email(email)
+                .username(email.substring(0, email.indexOf('@')))
                 .passwordHash("hash")
                 .role(UserRole.ROLE_USER)
                 .isEmailVerified(true)

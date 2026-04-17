@@ -1,24 +1,4 @@
 -- Idempotent nested-deck migration: safe for reruns and partially applied environments.
-ALTER TABLE decks ADD COLUMN parent_id CHAR(36) NULL AFTER id;
-
-SET @fk_exists := (
-    SELECT COUNT(*)
-    FROM information_schema.TABLE_CONSTRAINTS
-    WHERE CONSTRAINT_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'decks'
-      AND CONSTRAINT_NAME = 'fk_deck_parent'
-      AND CONSTRAINT_TYPE = 'FOREIGN KEY'
-);
-
-SET @fk_sql := IF(
-    @fk_exists = 0,
-    'ALTER TABLE decks ADD CONSTRAINT fk_deck_parent FOREIGN KEY (parent_id) REFERENCES decks(id) ON DELETE CASCADE',
-    'SELECT 1'
-);
-
-PREPARE fk_stmt FROM @fk_sql;
-EXECUTE fk_stmt;
-DEALLOCATE PREPARE fk_stmt;
 
 -- Seed default IELTS parent deck only when owner user exists and row is missing.
 INSERT INTO decks (id, author_id, name, description, is_public, tags, parent_id, created_at, updated_at)

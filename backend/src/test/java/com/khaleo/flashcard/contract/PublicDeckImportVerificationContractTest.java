@@ -41,20 +41,21 @@ class PublicDeckImportVerificationContractTest extends IntegrationPersistenceTes
     private PasswordEncoder passwordEncoder;
 
     @Test
-    void shouldDenyImportForAuthenticatedButUnverifiedUser() throws Exception {
+    void shouldAllowImportForAuthenticatedUserWithoutVerificationGate() throws Exception {
         User owner = saveUser("public-owner-verified@example.com", true);
         User actor = saveUser("public-actor-unverified@example.com", false);
         Deck deck = saveDeck(owner, "Public For Verification Gate", true);
 
-        // Import requires a verified account; authenticated but unverified users must be denied.
+        // Verification gate is removed; authenticated users can import public decks.
         mockMvc.perform(post("/api/v1/public/decks/{deckId}/import", deck.getId())
                         .header("Authorization", bearerFor(actor)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated());
     }
 
     private User saveUser(String email, boolean verified) {
         return userRepository.saveAndFlush(User.builder()
                 .email(email)
+                .username(email.substring(0, email.indexOf('@')))
                 .passwordHash(passwordEncoder.encode("Passw0rd!"))
                 .role(UserRole.ROLE_USER)
                 .isEmailVerified(verified)

@@ -61,7 +61,7 @@ export function Layout() {
             <div className="flex items-center gap-3">
               {currentUser ? (
                 <>
-                  <span className="text-sm text-slate-600">{currentUser.email}</span>
+                  <span className="text-sm text-slate-600">@{currentUser.username}</span>
                   <button
                     className="rounded bg-slate-900 px-3 py-1 text-white"
                     onClick={() => {

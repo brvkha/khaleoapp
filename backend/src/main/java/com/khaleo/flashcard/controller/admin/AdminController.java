@@ -77,7 +77,7 @@ public class AdminController {
         return PagedResponse.from(adminModerationService.listUsers(q, page, size, sortBy, sortDir)
                 .map(item -> new AdminUserModerationItemResponse(
                         item.id(),
-                        item.email(),
+                        item.username(),
                         item.role(),
                         item.verified(),
                         item.banned(),
@@ -96,7 +96,7 @@ public class AdminController {
                 .map(item -> new AdminDeckModerationItemResponse(
                         item.id(),
                         item.name(),
-                        item.ownerEmail(),
+                        item.ownerUsername(),
                         item.isPublic(),
                         item.banned(),
                         item.cardCount(),
@@ -128,22 +128,22 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public PagedResponse<AdminModerationActionResponse> listModerationActions(
             @RequestParam(required = false) String adminUserId,
-            @RequestParam(required = false) String adminEmail,
+            @RequestParam(required = false) String adminUsername,
             @RequestParam(required = false) String targetType,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) String sortDir) {
-        return PagedResponse.from(adminModerationService.listActions(adminUserId, adminEmail, targetType, status, page, size, sortBy, sortDir)
+        return PagedResponse.from(adminModerationService.listActions(adminUserId, adminUsername, targetType, status, page, size, sortBy, sortDir)
                 .map(item -> new AdminModerationActionResponse(
                         item.id(),
                         item.adminUserId(),
-                item.adminEmail(),
+                        item.adminUsername(),
                         item.actionType(),
                         item.targetType(),
                         item.targetId(),
-                item.targetDisplayName(),
+                        item.targetDisplayName(),
                         item.status(),
                         item.reasonCode(),
                         item.createdAt())));
@@ -153,11 +153,11 @@ public class AdminController {
         @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<String> exportModerationActionsCsv(
             @RequestParam(required = false) String adminUserId,
-            @RequestParam(required = false) String adminEmail,
+            @RequestParam(required = false) String adminUsername,
             @RequestParam(required = false) String targetType,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer size) {
-        String csv = adminModerationService.exportActionsCsv(adminUserId, adminEmail, targetType, status, size);
+        String csv = adminModerationService.exportActionsCsv(adminUserId, adminUsername, targetType, status, size);
         return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType("text/csv"))
             .header("Content-Disposition", "attachment; filename=moderation-actions.csv")

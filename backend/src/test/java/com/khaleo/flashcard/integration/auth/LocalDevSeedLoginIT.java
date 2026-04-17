@@ -22,7 +22,7 @@ class LocalDevSeedLoginIT extends IntegrationPersistenceTestBase {
 
     @Test
     void shouldAllowLoginForDefaultSeededAccount() {
-        AuthenticationService.LoginResult loginResult = authenticationService.login("khaleo@khaleo.app", "khaleo");
+        AuthenticationService.LoginResult loginResult = authenticationService.login("khaleo", "khaleo");
         assertThat(loginResult.accessToken()).isNotBlank();
         assertThat(loginResult.refreshToken()).isNotBlank();
     }

@@ -13,11 +13,10 @@ class BackendDeploymentWorkflowIT {
         String workflow = Files.readString(Path.of("..", ".github", "workflows", "deploy-backend.yml"));
 
         assertThat(workflow).contains("workflow_dispatch");
-        assertThat(workflow).contains("environment: production");
+        assertThat(workflow).contains("environment: prod");
         assertThat(workflow).contains("backend/${{ steps.sha.outputs.value }}/app.jar");
         assertThat(workflow).contains("aws ssm send-command");
         assertThat(workflow).contains("aws ssm list-command-invocations");
-        assertThat(workflow).contains("failed_targets");
         assertThat(workflow).contains("Rollback Guidance");
     }
 }

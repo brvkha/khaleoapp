@@ -37,6 +37,7 @@ import org.hibernate.annotations.UuidGenerator;
 @Table(
         name = "users",
         uniqueConstraints = {
+                @UniqueConstraint(name = "uk_users_username", columnNames = "username"),
                 @UniqueConstraint(name = "uk_users_email", columnNames = "email")
         })
 public class User extends BaseAuditableEntity {
@@ -47,9 +48,12 @@ public class User extends BaseAuditableEntity {
     @Column(name = "id", nullable = false, updatable = false, columnDefinition = "char(36)")
     private UUID id;
 
-    @Email
     @NotBlank
-    @Column(name = "email", nullable = false, length = 320)
+    @Column(name = "username", nullable = false, length = 50)
+    private String username;
+
+    @Email
+    @Column(name = "email", length = 320)
     private String email;
 
     @NotBlank
@@ -99,18 +103,10 @@ public class User extends BaseAuditableEntity {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<RefreshToken> refreshTokens = new ArrayList<>();
 
-    @Builder.Default
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private List<EmailVerificationToken> emailVerificationTokens = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private List<PasswordResetToken> passwordResetTokens = new ArrayList<>();
-
     @PrePersist
     @PreUpdate
     void applyDefaults() {
-        normalizeEmail();
+        normalizeIdentity();
 
         if (role == null) {
             role = UserRole.ROLE_USER;
@@ -135,9 +131,13 @@ public class User extends BaseAuditableEntity {
         }
     }
 
-    private void normalizeEmail() {
+    private void normalizeIdentity() {
+        if (username != null) {
+            username = username.trim().toLowerCase();
+        }
         if (email != null) {
-            email = email.trim().toLowerCase();
+            String normalizedEmail = email.trim().toLowerCase();
+            email = normalizedEmail.isBlank() ? null : normalizedEmail;
         }
     }
 }

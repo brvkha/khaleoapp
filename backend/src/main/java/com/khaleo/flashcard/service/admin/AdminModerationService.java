@@ -52,11 +52,11 @@ public class AdminModerationService {
     @Transactional(readOnly = true)
     public Page<AdminUserModerationItem> listUsers(String query, Integer page, Integer size, String sortBy, String sortDir) {
         String normalizedQuery = query == null || query.isBlank() ? null : query.trim();
-        Pageable pageable = resolveAdminPageable(page, size, sortBy, sortDir, List.of("createdAt", "email", "role", "bannedAt"));
+        Pageable pageable = resolveAdminPageable(page, size, sortBy, sortDir, List.of("createdAt", "username", "role", "bannedAt"));
         return userRepository.searchForAdmin(normalizedQuery, pageable)
                 .map(user -> new AdminUserModerationItem(
                         user.getId(),
-                        user.getEmail(),
+                        user.getUsername(),
                         user.getRole().name(),
                         Boolean.TRUE.equals(user.getIsEmailVerified()),
                         user.getBannedAt() != null,
@@ -71,84 +71,84 @@ public class AdminModerationService {
                 .map(deck -> new AdminDeckModerationItem(
                         deck.getId(),
                         deck.getName(),
-                        deck.getAuthor().getEmail(),
+                        deck.getAuthor().getUsername(),
                         Boolean.TRUE.equals(deck.getIsPublic()),
                         deck.getBannedAt() != null,
                         cardRepository.countByDeckId(deck.getId()),
                         deck.getCreatedAt()));
     }
 
-                @Transactional(readOnly = true)
-                public Page<AdminModerationActionItem> listActions(
-                        String adminUserId,
-                        String adminEmail,
-                    String targetType,
-                    String status,
-                    Integer page,
-                    Integer size,
-                    String sortBy,
-                    String sortDir) {
-                    UUID adminUserIdFilter = parseUuidFilter(adminUserId, "adminUserId");
-                    String adminEmailFilter = normalizeTextFilter(adminEmail);
-                AdminTargetType targetTypeFilter = parseTargetType(targetType);
-                AdminActionStatus statusFilter = parseStatus(status);
-                Pageable pageable = resolveAdminPageable(page, size, sortBy, sortDir, List.of("createdAt", "actionType", "targetType", "status"));
+    @Transactional(readOnly = true)
+    public Page<AdminModerationActionItem> listActions(
+            String adminUserId,
+            String adminUsername,
+            String targetType,
+            String status,
+            Integer page,
+            Integer size,
+            String sortBy,
+            String sortDir) {
+        UUID adminUserIdFilter = parseUuidFilter(adminUserId, "adminUserId");
+        String adminUsernameFilter = normalizeTextFilter(adminUsername);
+        AdminTargetType targetTypeFilter = parseTargetType(targetType);
+        AdminActionStatus statusFilter = parseStatus(status);
+        Pageable pageable = resolveAdminPageable(page, size, sortBy, sortDir, List.of("createdAt", "actionType", "targetType", "status"));
 
-                    return adminModerationActionRepository.searchForAdmin(adminUserIdFilter, adminEmailFilter, targetTypeFilter, statusFilter, pageable)
-                        .map(action -> {
-                            String resolvedAdminEmail = userRepository.findById(action.getAdminUserId())
-                                .map(User::getEmail)
-                                .orElse("unknown");
-                            String targetDisplayName = resolveTargetDisplayName(action.getTargetType(), action.getTargetId());
+        return adminModerationActionRepository.searchForAdmin(adminUserIdFilter, adminUsernameFilter, targetTypeFilter, statusFilter, pageable)
+                .map(action -> {
+                    String resolvedAdminUsername = userRepository.findById(action.getAdminUserId())
+                            .map(User::getUsername)
+                            .orElse("unknown");
+                    String targetDisplayName = resolveTargetDisplayName(action.getTargetType(), action.getTargetId());
 
-                            return new AdminModerationActionItem(
-                                action.getId(),
-                                action.getAdminUserId(),
-                                resolvedAdminEmail,
-                                action.getActionType().name(),
-                                action.getTargetType().name(),
-                                action.getTargetId(),
-                                targetDisplayName,
-                                action.getStatus().name(),
-                                action.getReasonCode(),
-                                action.getCreatedAt());
-                        });
-                }
+                    return new AdminModerationActionItem(
+                            action.getId(),
+                            action.getAdminUserId(),
+                            resolvedAdminUsername,
+                            action.getActionType().name(),
+                            action.getTargetType().name(),
+                            action.getTargetId(),
+                            targetDisplayName,
+                            action.getStatus().name(),
+                            action.getReasonCode(),
+                            action.getCreatedAt());
+                });
+    }
 
-                    @Transactional(readOnly = true)
-                    public String exportActionsCsv(
-                        String adminUserId,
-                        String adminEmail,
-                        String targetType,
-                        String status,
-                        Integer size) {
-                    Page<AdminModerationActionItem> page = listActions(
-                        adminUserId,
-                        adminEmail,
-                        targetType,
-                        status,
-                        0,
-                        size == null ? 200 : Math.min(size, 1000),
-                        "createdAt",
-                        "desc");
+    @Transactional(readOnly = true)
+    public String exportActionsCsv(
+            String adminUserId,
+            String adminUsername,
+            String targetType,
+            String status,
+            Integer size) {
+        Page<AdminModerationActionItem> page = listActions(
+                adminUserId,
+                adminUsername,
+                targetType,
+                status,
+                0,
+                size == null ? 200 : Math.min(size, 1000),
+                "createdAt",
+                "desc");
 
-                    String header = "id,createdAt,adminUserId,adminEmail,actionType,targetType,targetId,targetDisplayName,status,reasonCode";
-                    List<String> rows = page.getContent().stream()
-                        .map(item -> String.join(",",
-                            escapeCsv(item.id().toString()),
-                            escapeCsv(item.createdAt().toString()),
-                            escapeCsv(item.adminUserId().toString()),
-                            escapeCsv(item.adminEmail()),
-                            escapeCsv(item.actionType()),
-                            escapeCsv(item.targetType()),
-                            escapeCsv(item.targetId().toString()),
-                            escapeCsv(item.targetDisplayName()),
-                            escapeCsv(item.status()),
-                            escapeCsv(item.reasonCode())))
-                        .collect(Collectors.toList());
+        String header = "id,createdAt,adminUserId,adminUsername,actionType,targetType,targetId,targetDisplayName,status,reasonCode";
+        List<String> rows = page.getContent().stream()
+                .map(item -> String.join(",",
+                        escapeCsv(item.id().toString()),
+                        escapeCsv(item.createdAt().toString()),
+                        escapeCsv(item.adminUserId().toString()),
+                        escapeCsv(item.adminUsername()),
+                        escapeCsv(item.actionType()),
+                        escapeCsv(item.targetType()),
+                        escapeCsv(item.targetId().toString()),
+                        escapeCsv(item.targetDisplayName()),
+                        escapeCsv(item.status()),
+                        escapeCsv(item.reasonCode())))
+                .collect(Collectors.toList());
 
-                    return header + "\n" + String.join("\n", rows);
-                    }
+        return header + "\n" + String.join("\n", rows);
+    }
 
     public void banUser(UUID targetUserId) {
         UUID actorId = deckCardAccessGuard.requireAuthenticatedUserId("ban", "user", targetUserId.toString());
@@ -321,7 +321,7 @@ public class AdminModerationService {
 
     private String resolveTargetDisplayName(com.khaleo.flashcard.entity.enums.AdminTargetType targetType, UUID targetId) {
         return switch (targetType) {
-            case USER -> userRepository.findById(targetId).map(User::getEmail).orElse("unknown user");
+            case USER -> userRepository.findById(targetId).map(User::getUsername).orElse("unknown user");
             case DECK -> deckRepository.findById(targetId).map(Deck::getName).orElse("unknown deck");
             case CARD -> cardRepository.findById(targetId)
                     .map(card -> {
@@ -341,7 +341,7 @@ public class AdminModerationService {
 
     public record AdminUserModerationItem(
             UUID id,
-            String email,
+            String username,
             String role,
             boolean verified,
             boolean banned,
@@ -351,7 +351,7 @@ public class AdminModerationService {
     public record AdminDeckModerationItem(
             UUID id,
             String name,
-            String ownerEmail,
+            String ownerUsername,
             boolean isPublic,
             boolean banned,
             long cardCount,
@@ -361,7 +361,7 @@ public class AdminModerationService {
     public record AdminModerationActionItem(
             UUID id,
             UUID adminUserId,
-            String adminEmail,
+            String adminUsername,
             String actionType,
             String targetType,
             UUID targetId,

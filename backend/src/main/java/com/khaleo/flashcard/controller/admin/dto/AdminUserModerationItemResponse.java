@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public record AdminUserModerationItemResponse(
         UUID id,
-        String email,
+        String username,
         String role,
         boolean verified,
         boolean banned,

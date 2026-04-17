@@ -9,19 +9,17 @@ import org.junit.jupiter.api.Test;
 class LoggingConfigurationContractTest {
 
     @Test
-    void shouldDefineAsyncSplunkAppenderAndJsonConsoleLogging() throws Exception {
+    void shouldDefineJsonConsoleLoggingWithoutExternalCollectors() throws Exception {
         String logback = Files.readString(Path.of("src/main/resources/logback-spring.xml"));
         assertThat(logback).contains("CONSOLE_JSON");
-        assertThat(logback).contains("HttpEventCollectorLogbackAppender");
-        assertThat(logback).contains("ASYNC_SPLUNK");
-        assertThat(logback).contains("neverBlock");
-        assertThat(logback).contains("app.observability.splunk.hec-url");
-        assertThat(logback).contains("app.observability.splunk.hec-token");
+        assertThat(logback).doesNotContain("HttpEventCollectorLogbackAppender");
+        assertThat(logback).doesNotContain("ASYNC_SPLUNK");
+        assertThat(logback).doesNotContain("app.observability.splunk.hec-url");
+        assertThat(logback).doesNotContain("app.observability.splunk.hec-token");
 
         String appConfig = Files.readString(Path.of("src/main/resources/application.yml"));
         assertThat(appConfig).contains("app:");
-        assertThat(appConfig).contains("observability:");
-        assertThat(appConfig).contains("splunk:");
-        assertThat(appConfig).contains("newrelic:");
+        assertThat(appConfig).doesNotContain("splunk:");
+        assertThat(appConfig).doesNotContain("newrelic:");
     }
 }

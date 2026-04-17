@@ -22,7 +22,6 @@
         <aws.sdk.version>2.26.26</aws.sdk.version>
         <testcontainers.version>1.20.1</testcontainers.version>
         <jjwt.version>0.12.6</jjwt.version>
-        <splunk.logging.version>1.11.8</splunk.logging.version>
     </properties>
 
     <dependencyManagement>
@@ -96,11 +95,6 @@
             <version>2.5.0</version>
         </dependency>
         <dependency>
-            <groupId>com.splunk.logging</groupId>
-            <artifactId>splunk-library-javalogging</artifactId>
-            <version>${splunk.logging.version}</version>
-        </dependency>
-        <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
             <version>${jjwt.version}</version>
@@ -139,13 +133,6 @@
         </dependency>
     </dependencies>
 
-    <repositories>
-        <repository>
-            <id>splunk-artifactory</id>
-            <name>Splunk Artifactory</name>
-            <url>https://splunk.jfrog.io/splunk/ext-releases-local</url>
-        </repository>
-    </repositories>
 
     <build>
         <plugins>

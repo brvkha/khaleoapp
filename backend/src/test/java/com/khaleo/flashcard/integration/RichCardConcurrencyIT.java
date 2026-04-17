@@ -48,6 +48,7 @@ class RichCardConcurrencyIT extends IntegrationPersistenceTestBase {
     void shouldRejectUpdateWhenVersionIsStale() {
         User user = userRepository.save(User.builder()
                 .email("rich-card-concurrency-owner@example.com")
+                .username("rich_card_concurrency_owner")
                 .passwordHash("hash")
                 .build());
         Deck deck = deckRepository.save(Deck.builder()

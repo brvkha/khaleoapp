@@ -29,7 +29,7 @@ export type AdminStatsDto = {
 
 export type AdminUserModerationItemDto = {
   id: string
-  email: string
+  username: string
   role: string
   verified: boolean
   banned: boolean
@@ -39,7 +39,7 @@ export type AdminUserModerationItemDto = {
 export type AdminDeckModerationItemDto = {
   id: string
   name: string
-  ownerEmail: string
+  ownerUsername: string
   isPublic: boolean
   banned: boolean
   cardCount: number
@@ -49,7 +49,7 @@ export type AdminDeckModerationItemDto = {
 export type AdminModerationActionDto = {
   id: string
   adminUserId: string
-  adminEmail: string
+  adminUsername: string
   actionType: string
   targetType: string
   targetId: string
@@ -106,7 +106,7 @@ export async function unbanAdminDeck(deckId: string): Promise<void> {
 
 type ModerationActionParams = {
   adminUserId?: string
-  adminEmail?: string
+  adminUsername?: string
   targetType?: '' | 'USER' | 'DECK' | 'CARD'
   status?: '' | 'SUCCESS' | 'FAILURE'
   page?: number
@@ -117,7 +117,7 @@ type ModerationActionParams = {
 
 export async function listAdminModerationActions(params?: ModerationActionParams): Promise<PagedResponse<AdminModerationActionDto>> {
   const adminUserId = params?.adminUserId ?? ''
-  const adminEmail = params?.adminEmail ?? ''
+  const adminUsername = params?.adminUsername ?? ''
   const targetType = params?.targetType ?? ''
   const status = params?.status ?? ''
   const page = params?.page ?? 0
@@ -127,7 +127,7 @@ export async function listAdminModerationActions(params?: ModerationActionParams
 
   const query =
     `adminUserId=${encodeURIComponent(adminUserId)}` +
-    `&adminEmail=${encodeURIComponent(adminEmail)}` +
+    `&adminUsername=${encodeURIComponent(adminUsername)}` +
     `&targetType=${encodeURIComponent(targetType)}` +
     `&status=${encodeURIComponent(status)}` +
     `&page=${page}` +
@@ -140,20 +140,20 @@ export async function listAdminModerationActions(params?: ModerationActionParams
 
 export async function exportAdminModerationActionsCsv(params?: {
   adminUserId?: string
-  adminEmail?: string
+  adminUsername?: string
   targetType?: '' | 'USER' | 'DECK' | 'CARD'
   status?: '' | 'SUCCESS' | 'FAILURE'
   size?: number
 }): Promise<string> {
   const adminUserId = params?.adminUserId ?? ''
-  const adminEmail = params?.adminEmail ?? ''
+  const adminUsername = params?.adminUsername ?? ''
   const targetType = params?.targetType ?? ''
   const status = params?.status ?? ''
   const size = params?.size ?? 1000
 
   const query =
     `adminUserId=${encodeURIComponent(adminUserId)}` +
-    `&adminEmail=${encodeURIComponent(adminEmail)}` +
+    `&adminUsername=${encodeURIComponent(adminUsername)}` +
     `&targetType=${encodeURIComponent(targetType)}` +
     `&status=${encodeURIComponent(status)}` +
     `&size=${size}`

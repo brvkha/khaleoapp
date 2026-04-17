@@ -63,6 +63,7 @@ class AdminManagementContractTest extends IntegrationPersistenceTestBase {
     void setUp() {
         admin = userRepository.save(User.builder()
                 .email("admin-contract@example.com")
+                .username("admin_contract")
                 .passwordHash("hash")
                 .role(UserRole.ROLE_ADMIN)
                 .isEmailVerified(true)
@@ -71,6 +72,7 @@ class AdminManagementContractTest extends IntegrationPersistenceTestBase {
 
         learner = userRepository.save(User.builder()
                 .email("learner-contract@example.com")
+                .username("learner_contract")
                 .passwordHash("hash")
                 .role(UserRole.ROLE_USER)
                 .isEmailVerified(true)

@@ -42,7 +42,6 @@ app:
   runtime-secrets:
     db-secret-id: ${DB_SECRET_ID:khaleo/prod/db-credentials}
     jwt-secret-id: ${JWT_SECRET_ID:khaleo/prod/jwt-secret}
-    ses-secret-id: ${SES_SECRET_ID:khaleo/prod/ses-credentials}
   study:
     next-cards:
       default-page-size: ${STUDY_NEXT_CARDS_DEFAULT_PAGE_SIZE:20}
@@ -71,23 +70,6 @@ app:
     lockout:
       max-failed-attempts: ${AUTH_LOCKOUT_MAX_FAILED_ATTEMPTS:5}
       duration-seconds: ${AUTH_LOCKOUT_DURATION_SECONDS:900}
-    email:
-      verification-required: ${APP_AUTH_EMAIL_VERIFICATION_REQUIRED:true}
-      provider: ${APP_EMAIL_PROVIDER:mock}
-      from: ${AUTH_EMAIL_FROM:no-reply@khaleoshop.click}
-      verification-base-url: ${AUTH_VERIFICATION_BASE_URL:https://app.khaleoshop.click/verify}
-      reset-base-url: ${AUTH_RESET_BASE_URL:https://app.khaleoshop.click/reset-password}
-  observability:
-    splunk:
-      enabled: ${SPLUNK_ENABLED:false}
-      hec-url: ${SPLUNK_HEC_URL:http://localhost:8088/services/collector/event}
-      hec-token: ${SPLUNK_HEC_TOKEN:disabled-token}
-      source: ${SPLUNK_SOURCE:flashcard-backend}
-      source-type: ${SPLUNK_SOURCE_TYPE:kha-leo:backend}
-      index: ${SPLUNK_INDEX:main}
-    newrelic:
-      agent-enabled: ${NEW_RELIC_AGENT_ENABLED:false}
-      app-name: ${NEW_RELIC_APP_NAME:flashcard-backend}
   rich-card:
     image:
       allowlist-hosts: ${RICH_CARD_IMAGE_ALLOWLIST_HOSTS:images.unsplash.com,cdn.pixabay.com,upload.wikimedia.org}

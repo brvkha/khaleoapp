@@ -18,11 +18,11 @@ public interface AdminModerationActionRepository extends JpaRepository<AdminMode
 			where (:targetType is null or a.targetType = :targetType)
 				and (:status is null or a.status = :status)
 				and (:adminUserId is null or a.adminUserId = :adminUserId)
-				and (:adminEmail is null or lower(coalesce(u.email, '')) like lower(concat('%', :adminEmail, '%')))
+				and (:adminUsername is null or lower(coalesce(u.username, '')) like lower(concat('%', :adminUsername, '%')))
 			""")
 	Page<AdminModerationAction> searchForAdmin(
 			@Param("adminUserId") UUID adminUserId,
-			@Param("adminEmail") String adminEmail,
+			@Param("adminUsername") String adminUsername,
 			@Param("targetType") AdminTargetType targetType,
 			@Param("status") AdminActionStatus status,
 			Pageable pageable);

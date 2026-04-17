@@ -122,7 +122,7 @@ export function AdminDecksPage() {
             {decks.map((deck, index) => (
               <tr key={deck.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                 <td className="p-3">{deck.name}</td>
-                <td className="p-3">{deck.ownerEmail}</td>
+                <td className="p-3">{deck.ownerUsername}</td>
                 <td className="p-3">{deck.cardCount}</td>
                 <td className="p-3">{deck.banned ? 'BANNED' : deck.isPublic ? 'PUBLIC' : 'PRIVATE'}</td>
                 <td className="p-3 text-right">

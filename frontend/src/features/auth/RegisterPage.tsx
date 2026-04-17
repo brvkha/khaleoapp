@@ -5,7 +5,8 @@ import { useAuthStore } from '../../store/authStore'
 import { useNotificationStore } from '../../store/notificationStore'
 
 export function RegisterPage() {
-  const [email, setEmail] = useState('new-user@khaleo.app')
+  const [username, setUsername] = useState('newuser')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
@@ -17,23 +18,23 @@ export function RegisterPage() {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!email || !password || !confirmPassword) {
-      setError('Vui lòng nhập đầy đủ email, password và confirm password.')
+    if (!username || !password || !confirmPassword) {
+      setError('Vui long nhap day du username, password va confirm password.')
       return
     }
 
     if (password !== confirmPassword) {
-      setError('Mật khẩu nhập lại không khớp. Vui lòng kiểm tra lại.')
-      pushError('Mật khẩu nhập lại không khớp. Vui lòng kiểm tra lại.')
+      setError('Mat khau nhap lai khong khop. Vui long kiem tra lai.')
+      pushError('Mat khau nhap lai khong khop. Vui long kiem tra lai.')
       return
     }
 
     setError('')
     setMessage('')
     try {
-      await register(email, password)
-      const normalizedEmail = email.trim().toLowerCase()
-      const successMessage = `Đăng ký thành công với email ${normalizedEmail}. Bạn có thể đăng nhập ngay.`
+      await register(username, email, password)
+      const normalizedUsername = username.trim().toLowerCase()
+      const successMessage = `Dang ky thanh cong voi username ${normalizedUsername}. Ban co the dang nhap ngay.`
       setMessage(successMessage)
       pushSuccess(successMessage)
       navigate('/login')
@@ -50,7 +51,15 @@ export function RegisterPage() {
       <h1 className="text-2xl font-semibold">Register</h1>
       <form className="mt-4 space-y-3" onSubmit={onSubmit}>
         <label className="block">
-          <span className="text-sm">Email</span>
+          <span className="text-sm">Username</span>
+          <input
+            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm">Email (optional)</span>
           <input
             className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
             value={email}

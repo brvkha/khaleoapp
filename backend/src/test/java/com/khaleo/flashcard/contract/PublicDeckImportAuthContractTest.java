@@ -47,6 +47,7 @@ class PublicDeckImportAuthContractTest extends IntegrationPersistenceTestBase {
     private User saveUser(String email) {
         return userRepository.saveAndFlush(User.builder()
                 .email(email)
+                .username(email.substring(0, email.indexOf('@')))
                 .passwordHash(passwordEncoder.encode("Passw0rd!"))
                 .role(UserRole.ROLE_USER)
                 .isEmailVerified(true)

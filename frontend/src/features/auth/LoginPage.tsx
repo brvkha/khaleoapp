@@ -5,8 +5,8 @@ import { useAuthStore } from '../../store/authStore'
 import { useNotificationStore } from '../../store/notificationStore'
 
 export function LoginPage() {
-  const [email, setEmail] = useState('khaleo@khaleo.app')
-  const [password, setPassword] = useState('password123')
+  const [identifier, setIdentifier] = useState('khaleo')
+  const [password, setPassword] = useState('khaleo')
   const [error, setError] = useState('')
   const login = useAuthStore((state) => state.login)
   const currentUser = useAuthStore((state) => state.currentUser)
@@ -25,12 +25,12 @@ export function LoginPage() {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!email || !password) {
+    if (!identifier || !password) {
       return
     }
     setError('')
     try {
-      await login(email, password)
+      await login(identifier, password)
       pushSuccess('Đăng nhập thành công.')
       const returnTo = searchParams.get('returnTo')
       navigate(returnTo && returnTo.startsWith('/') ? returnTo : '/')
@@ -45,14 +45,21 @@ export function LoginPage() {
   return (
     <section className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
       <h1 className="text-2xl font-semibold">Login</h1>
-      <p className="mt-2 text-sm text-slate-600">Sample Accounts (password: password123): <br/>- admin@khaleo.app (Admin) <br/>- khaleo@khaleo.app (User)<br/>- user@test.com (User)</p>
+      <p className="mt-2 text-sm text-slate-600">
+        Login bang username (khuyen nghi) hoac email @gmail.com.
+        <br />
+        Seed accounts:{' '}
+        <br />- <strong>khaleo</strong> (password: <strong>khaleo</strong>)
+        <br />- <strong>user</strong> (password: <strong>khaleo</strong>)
+        <br />- <strong>admin</strong> (password hidden)
+      </p>
       <form className="mt-4 space-y-3" onSubmit={onSubmit}>
         <label className="block">
-          <span className="text-sm">Email</span>
+          <span className="text-sm">Username or Email</span>
           <input
             className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
           />
         </label>
         <label className="block">

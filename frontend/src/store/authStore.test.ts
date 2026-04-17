@@ -20,6 +20,7 @@ describe('auth store', () => {
     persistAuthSession({
       currentUser: {
         id: 'u1',
+        username: 'khaleo',
         email: 'khaleo@khaleo.app',
         role: 'USER',
         verified: true,
@@ -35,6 +36,6 @@ describe('auth store', () => {
     })
 
     useAuthStore.getState().bootstrap()
-    expect(useAuthStore.getState().currentUser?.email).toBe('khaleo@khaleo.app')
+    expect(useAuthStore.getState().currentUser?.username).toBe('khaleo')
   })
 })

@@ -47,7 +47,7 @@ public class PublicDeckDiscoveryService {
                 deck.getId(),
                 deck.getName(),
                 deck.getDescription(),
-                deck.getAuthor().getEmail(),
+                deck.getAuthor().getUsername(),
                 splitTags(deck.getTags()),
                 (int) cardRepository.countByDeckId(deckId),
                 previews);
@@ -58,7 +58,7 @@ public class PublicDeckDiscoveryService {
         return new PublicDeckSummaryResponse(
                 deck.getId(),
                 deck.getName(),
-                deck.getAuthor().getEmail(),
+                deck.getAuthor().getUsername(),
                 deck.getDescription(),
                 splitTags(deck.getTags()),
                 cardCount,

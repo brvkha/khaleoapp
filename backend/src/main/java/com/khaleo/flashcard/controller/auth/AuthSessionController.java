@@ -28,7 +28,7 @@ public class AuthSessionController {
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         AuthenticationService.LoginResult result =
-                authenticationService.login(request.email(), request.password());
+                authenticationService.login(request.identifier(), request.password());
         return new LoginResponse(result.accessToken(), result.refreshToken(), result.expiresIn());
     }
 

@@ -5,23 +5,24 @@ import { persistAuthSession, readAuthSession } from '../services/authSession'
 
 type AuthState = {
   currentUser: User | null
-  login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string) => Promise<void>
+  login: (identifier: string, password: string) => Promise<void>
+  register: (username: string, email: string | null, password: string) => Promise<void>
   logout: () => Promise<void>
   bootstrap: () => void
-  banUser: (email: string) => void
+  banUser: (username: string) => void
 }
 
 const initialUser = readAuthSession()?.currentUser ?? null
 
 export const useAuthStore = create<AuthState>((set) => ({
   currentUser: initialUser,
-  login: async (email, password) => {
-    const loginResponse = await loginWithPassword(email, password)
+  login: async (identifier, password) => {
+    const loginResponse = await loginWithPassword(identifier, password)
     const claims = getClaimsFromAccessToken(loginResponse.accessToken)
     const user: User = {
       id: claims.userId,
-      email: email.trim().toLowerCase(),
+      username: claims.username,
+      email: claims.email,
       role: claims.role,
       verified: true,
       banned: false,
@@ -35,8 +36,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     set({ currentUser: user })
   },
-  register: async (email, password) => {
-    await registerWithPassword(email, password)
+  register: async (username, email, password) => {
+    await registerWithPassword(username, email, password)
   },
   logout: async () => {
     const session = readAuthSession()
@@ -54,9 +55,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   bootstrap: () => {
     set({ currentUser: readAuthSession()?.currentUser ?? null })
   },
-  banUser: (email) => {
+  banUser: (username) => {
     set((state) => {
-      if (!state.currentUser || state.currentUser.email !== email) {
+      if (!state.currentUser || state.currentUser.username !== username) {
         return state
       }
       const next = { ...state.currentUser, banned: true }

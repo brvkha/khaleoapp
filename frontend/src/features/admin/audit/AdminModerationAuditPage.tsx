@@ -12,7 +12,7 @@ export function AdminModerationAuditPage() {
   const [size, setSize] = useState(10)
   const [totalPages, setTotalPages] = useState(0)
   const [adminUserId, setAdminUserId] = useState('')
-  const [adminEmail, setAdminEmail] = useState('')
+  const [adminUsername, setAdminUsername] = useState('')
   const [targetType, setTargetType] = useState<'' | 'USER' | 'DECK' | 'CARD'>('')
   const [status, setStatus] = useState<'' | 'SUCCESS' | 'FAILURE'>('')
   const [sortBy, setSortBy] = useState<'createdAt' | 'actionType' | 'targetType' | 'status'>('createdAt')
@@ -22,7 +22,7 @@ export function AdminModerationAuditPage() {
     setLoading(true)
     void listAdminModerationActions({
       adminUserId,
-      adminEmail,
+      adminUsername,
       targetType,
       status,
       page,
@@ -40,12 +40,12 @@ export function AdminModerationAuditPage() {
       .finally(() => {
         setLoading(false)
       })
-  }, [adminUserId, adminEmail, targetType, status, page, size, sortBy, sortDir])
+  }, [adminUserId, adminUsername, targetType, status, page, size, sortBy, sortDir])
 
   const handleExportCsv = () => {
     void exportAdminModerationActionsCsv({
       adminUserId,
-      adminEmail,
+      adminUsername,
       targetType,
       status,
       size: 1000,
@@ -84,10 +84,10 @@ export function AdminModerationAuditPage() {
 
           <input
             className="rounded border border-slate-300 px-3 py-2 text-sm"
-            placeholder="Filter: admin email"
-            value={adminEmail}
+            placeholder="Filter: admin username"
+            value={adminUsername}
             onChange={(event) => {
-              setAdminEmail(event.target.value)
+              setAdminUsername(event.target.value)
               setPage(0)
             }}
           />
@@ -188,7 +188,7 @@ export function AdminModerationAuditPage() {
               <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                 <td className="p-3">{new Date(item.createdAt).toLocaleString()}</td>
                 <td className="p-3">{item.actionType}</td>
-                <td className="p-3">{item.adminEmail}</td>
+                <td className="p-3">{item.adminUsername}</td>
                 <td className="p-3">{item.targetType}</td>
                 <td className="p-3">
                   <p className="text-slate-800">{item.targetDisplayName || '-'}</p>

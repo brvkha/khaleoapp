@@ -101,6 +101,7 @@ class StudyNextCardsOrderingIT extends IntegrationPersistenceTestBase {
     private User saveUser(String email, int dailyLimit) {
         return userRepository.saveAndFlush(User.builder()
                 .email(email)
+                .username(email.substring(0, email.indexOf('@')))
                 .passwordHash("hash")
                 .role(UserRole.ROLE_USER)
                 .isEmailVerified(true)

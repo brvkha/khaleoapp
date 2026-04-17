@@ -118,6 +118,7 @@ class DeckManagementContractTest extends IntegrationPersistenceTestBase {
     private User createUser(String email, UserRole role) {
         User user = User.builder()
                 .email(email)
+                .username(email.substring(0, email.indexOf('@')))
                 .passwordHash(passwordEncoder.encode("Passw0rd!"))
                 .role(role)
                 .isEmailVerified(true)

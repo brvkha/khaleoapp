@@ -1,10 +1,12 @@
 INSERT INTO users (
     id,
+    username,
     email,
     password_hash,
     role,
     is_email_verified,
     daily_learning_limit,
+    timezone,
     failed_login_attempts,
     account_locked_until,
     banned_at,
@@ -14,11 +16,13 @@ INSERT INTO users (
 )
 SELECT
     '00000000-0000-0000-0000-000000000001',
-    'user@test.com',
-    '$2b$10$DEgHKnmj9mF9xnvKR9rZqOA8Zfxb7fB0quF0yVf4ohdJ.CqA78jW.',
+    'user',
+    'user@gmail.com',
+    '$2b$12$2UaQlqvE0pKiOO8ud5YDy.qOgSu.r5YWFMmpMicS/F0I3WxYdM366',
     'ROLE_USER',
     TRUE,
     9999,
+    'Asia/Ho_Chi_Minh',
     0,
     NULL,
     NULL,
@@ -26,6 +30,5 @@ SELECT
     CURRENT_TIMESTAMP(6),
     CURRENT_TIMESTAMP(6)
 WHERE NOT EXISTS (
-    SELECT 1 FROM users WHERE email = 'user@test.com'
+    SELECT 1 FROM users WHERE username = 'user'
 );
-

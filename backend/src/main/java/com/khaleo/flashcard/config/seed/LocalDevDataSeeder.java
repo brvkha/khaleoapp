@@ -89,21 +89,22 @@ public class LocalDevDataSeeder implements ApplicationRunner {
 
     private Map<String, User> seedUsers() {
         List<UserSeed> users = List.of(
-            new UserSeed("admin@khaleo.app", UserRole.ROLE_ADMIN, true, false),
-            new UserSeed("khaleo@khaleo.app", UserRole.ROLE_USER, true, false),
-                new UserSeed("learner+01@khaleo.app", UserRole.ROLE_USER, true, false),
-                new UserSeed("learner+02@khaleo.app", UserRole.ROLE_USER, true, false),
-                new UserSeed("learner+03@khaleo.app", UserRole.ROLE_USER, true, false),
-                new UserSeed("learner+04@khaleo.app", UserRole.ROLE_USER, true, false),
-                new UserSeed("learner+05@khaleo.app", UserRole.ROLE_USER, true, false),
-                new UserSeed("learner+blocked@khaleo.app", UserRole.ROLE_USER, true, true),
-                new UserSeed("learner+unverified@khaleo.app", UserRole.ROLE_USER, false, false));
+                new UserSeed("admin", "admin@gmail.com", UserRole.ROLE_ADMIN, true, false),
+                new UserSeed("khaleo", "khaleo@gmail.com", UserRole.ROLE_USER, true, false),
+                new UserSeed("learner01", "learner01@gmail.com", UserRole.ROLE_USER, true, false),
+                new UserSeed("learner02", "learner02@gmail.com", UserRole.ROLE_USER, true, false),
+                new UserSeed("learner03", "learner03@gmail.com", UserRole.ROLE_USER, true, false),
+                new UserSeed("learner04", "learner04@gmail.com", UserRole.ROLE_USER, true, false),
+                new UserSeed("learner05", "learner05@gmail.com", UserRole.ROLE_USER, true, false),
+                new UserSeed("learnerblocked", "learnerblocked@gmail.com", UserRole.ROLE_USER, true, true),
+                new UserSeed("learnerunverified", "learnerunverified@gmail.com", UserRole.ROLE_USER, false, false));
 
         List<User> savedUsers = new ArrayList<>();
         Instant now = Instant.now();
         for (UserSeed seed : users) {
-            User user = userRepository.findByEmail(seed.email)
+            User user = userRepository.findByUsername(seed.username)
                     .orElseGet(User::new);
+            user.setUsername(seed.username);
             user.setEmail(seed.email);
             user.setPasswordHash(passwordEncoder.encode(defaultPassword));
             user.setRole(seed.role);
@@ -121,27 +122,27 @@ public class LocalDevDataSeeder implements ApplicationRunner {
 
     private void seedDecksAndCards(Map<String, User> usersByEmail) {
         List<DeckSeed> decks = List.of(
-                new DeckSeed("EN-VOC-CORE-1500", "learner+01@khaleo.app", true, "English",
+                new DeckSeed("EN-VOC-CORE-1500", "learner01@gmail.com", true, "English",
                         "1500 practical English concepts for daily and professional communication"),
-                new DeckSeed("EN-VOC-PHRASAL-VERBS", "learner+02@khaleo.app", true, "English",
+                new DeckSeed("EN-VOC-PHRASAL-VERBS", "learner02@gmail.com", true, "English",
                         "High-frequency phrasal verbs in context"),
-                new DeckSeed("EN-GRAM-ESSENTIALS", "learner+03@khaleo.app", true, "English",
+                new DeckSeed("EN-GRAM-ESSENTIALS", "learner03@gmail.com", true, "English",
                         "Core grammar patterns with concise usage rules"),
-                new DeckSeed("EN-SPEAKING-PATTERNS", "learner+04@khaleo.app", true, "English",
+                new DeckSeed("EN-SPEAKING-PATTERNS", "learner04@gmail.com", true, "English",
                         "Reusable sentence patterns for meetings, feedback, and daily conversation"),
-                new DeckSeed("TECH-SPRING-BOOT", "learner+05@khaleo.app", true, "Engineering",
+                new DeckSeed("TECH-SPRING-BOOT", "learner05@gmail.com", true, "Engineering",
                         "Spring Boot architecture and operational concepts"),
-                new DeckSeed("DATA-SQL-ESSENTIALS", "learner+02@khaleo.app", true, "Engineering",
+                new DeckSeed("DATA-SQL-ESSENTIALS", "learner02@gmail.com", true, "Engineering",
                         "SQL querying, indexing, and transaction concepts"),
-                new DeckSeed("PRODUCT-UX-FOUNDATIONS", "learner+03@khaleo.app", true, "Product",
+                new DeckSeed("PRODUCT-UX-FOUNDATIONS", "learner03@gmail.com", true, "Product",
                         "Core UX and product delivery concepts"),
-                new DeckSeed("SCIENCE-BIO-CHEM", "learner+04@khaleo.app", true, "Science",
+                new DeckSeed("SCIENCE-BIO-CHEM", "learner04@gmail.com", true, "Science",
                         "Cross-topic biology and chemistry concepts"),
-                new DeckSeed("HISTORY-WORLD-MILESTONES", "learner+05@khaleo.app", true, "History",
+                new DeckSeed("HISTORY-WORLD-MILESTONES", "learner05@gmail.com", true, "History",
                         "Important milestones and causality in world history"),
-                new DeckSeed("PRI-LEARNING-SCRATCH", "khaleo@khaleo.app", false, "Private",
+                new DeckSeed("PRI-LEARNING-SCRATCH", "khaleo@gmail.com", false, "Private",
                         "Private scratch deck for custom notes and experiments"),
-                new DeckSeed("PRI-ADMIN-REVIEW", "admin@khaleo.app", false, "Admin",
+                new DeckSeed("PRI-ADMIN-REVIEW", "admin@gmail.com", false, "Admin",
                         "Admin moderation and quality review samples"));
 
         for (DeckSeed deckSeed : decks) {
@@ -339,7 +340,7 @@ public class LocalDevDataSeeder implements ApplicationRunner {
         return cards;
     }
 
-    private record UserSeed(String email, UserRole role, boolean verified, boolean banned) {
+    private record UserSeed(String username, String email, UserRole role, boolean verified, boolean banned) {
     }
 
     private record DeckSeed(String code, String ownerEmail, boolean isPublic, String topic, String description) {

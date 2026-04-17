@@ -6,7 +6,7 @@ import java.util.UUID;
 public record AdminModerationActionResponse(
         UUID id,
         UUID adminUserId,
-        String adminEmail,
+        String adminUsername,
         String actionType,
         String targetType,
         UUID targetId,

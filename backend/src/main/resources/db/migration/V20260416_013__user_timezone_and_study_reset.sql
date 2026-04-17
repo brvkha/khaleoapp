@@ -1,3 +1,2 @@
-ALTER TABLE users
-    ADD COLUMN timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Ho_Chi_Minh';
-
+-- No-op on clean installs.
+-- users.timezone is part of V1__init_schema.sql canonical schema.
