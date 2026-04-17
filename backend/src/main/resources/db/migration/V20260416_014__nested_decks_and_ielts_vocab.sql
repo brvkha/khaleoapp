@@ -1,5 +1,5 @@
 -- Idempotent nested-deck migration: safe for reruns and partially applied environments.
-ALTER TABLE decks ADD COLUMN IF NOT EXISTS parent_id CHAR(36) NULL AFTER id;
+ALTER TABLE decks ADD COLUMN parent_id CHAR(36) NULL AFTER id;
 
 SET @fk_exists := (
     SELECT COUNT(*)
