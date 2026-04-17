@@ -45,7 +45,7 @@ describe('route guards', () => {
       ...useAuthStore.getState(),
       currentUser: {
         id: 'u2',
-        email: 'user@khaleo.app',
+        username: 'u2',
         role: 'USER',
         verified: true,
         banned: false,
