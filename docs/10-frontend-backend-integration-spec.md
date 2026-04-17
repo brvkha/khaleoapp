@@ -27,13 +27,13 @@ User vào localhost:5173
   ↓
 Redirect /login
   ↓
-Form: email + password
+Form: identifier(username hoac email) + password
   ↓
-POST /api/v1/auth/login { email, password }
+POST /api/v1/auth/login { identifier, password }
   ↓
-Backend trả: { accessToken, refreshToken, user }
+Backend tra: { accessToken, refreshToken, expiresIn }
   ↓
-Frontend lưu accessToken (memory) + refreshToken (httpOnly cookie auto)
+Frontend lưu session auth trong localStorage (`accessToken`, `refreshToken`, `currentUser`)
   ↓
 Redirect /flashcard/decks (home)
 ```
@@ -129,33 +129,29 @@ Content-Type: application/json
 
 Request:
 {
-  "email": "user@example.com",
-  "password": "password123"
+  "identifier": "khaleo",
+  "password": "khaleo"
 }
 
 Success (200):
 {
   "accessToken": "eyJhbGc...",
   "refreshToken": "eyJhbGc...",
-  "user": {
-    "id": "uuid",
-    "email": "user@example.com",
-    "role": "USER"
-  }
+  "expiresIn": 900
 }
 
 Error (401):
 {
   "code": "INVALID_CREDENTIALS",
-  "message": "Email or password is incorrect",
+  "message": "Identifier or password is incorrect",
   "timestamp": "2026-04-10T12:00:00Z",
   "path": "/api/v1/auth/login"
 }
 
-Error (429): Account locked (brute force)
+Error (423): Account locked (brute force)
 {
   "code": "ACCOUNT_LOCKED",
-  "message": "Too many login attempts. Try again in 15 minutes.",
+  "message": "Account is locked until <timestamp>",
   "timestamp": "2026-04-10T12:00:00Z",
   "path": "/api/v1/auth/login"
 }
@@ -165,12 +161,17 @@ Error (429): Account locked (brute force)
 ```
 POST /api/v1/auth/refresh
 Content-Type: application/json
-Cookie: refreshToken={value}
+
+Request:
+{
+  "refreshToken": "<refresh-token>"
+}
 
 Success (200):
 {
   "accessToken": "eyJhbGc...",
-  "refreshToken": "eyJhbGc..." (optional, new refresh token)
+  "refreshToken": null,
+  "expiresIn": 900
 }
 
 Error (401):
@@ -185,11 +186,40 @@ Error (401):
 #### Logout
 ```
 POST /api/v1/auth/logout
-Authorization: Bearer {accessToken}
+Content-Type: application/json
+Body: { "refreshToken": "<refresh-token>" }
 
 Success (204): No content
 
 Backend action: revoke refresh token
+```
+
+#### Register
+```
+POST /api/v1/auth/register
+Content-Type: application/json
+
+Request:
+{
+  "username": "khaleo",
+  "email": "khaleo@gmail.com", // optional, co the null
+  "password": "khaleo"
+}
+
+Success (201):
+{
+  "userId": "uuid",
+  "username": "khaleo",
+  "email": "khaleo@gmail.com" // co the null neu dang ky khong email
+}
+```
+
+#### Removed In Current Phase
+```
+Khong ho tro cac endpoint:
+- /api/v1/auth/verify-email
+- /api/v1/auth/forgot-password
+- /api/v1/auth/reset-password
 ```
 
 ### Deck Endpoints
@@ -273,7 +303,7 @@ POST /api/v1/study-session/cards/{cardId}/rate
 ### Auth State
 ```typescript
 interface AuthState {
-  currentUser: { id, email, role } | null
+  currentUser: { id, username, email, role } | null
   accessToken: string | null
   isAuthenticated: boolean
   loading: boolean
@@ -281,9 +311,10 @@ interface AuthState {
 }
 
 Methods:
-- login(email, password)
+- login(identifier, password)
+- register(username, email | null, password)
 - logout()
-- refreshToken() // tự động gọi trước khi access token hết hạn
+- bootstrap()
 - setCurrentUser(user)
 ```
 
@@ -347,6 +378,7 @@ interface StudyState {
 | 403 | Forbidden | Show "Access denied" message |
 | 404 | Not found | Show empty state |
 | 409 | Conflict | Optimistic locking (version mismatch) retry |
+| 423 | Account locked | Show lockout message, cho user doi het thoi gian khoa |
 | 500 | Server error | Show "Server error. Try again later" |
 
 ### Error Response Format
@@ -429,55 +461,39 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 ### Access Token
 - TTL: 15 minutes
-- Stored: Memory (sessionStorage)
+- Stored: localStorage trong `khaleo-auth-session`
 - Sent: Authorization: Bearer {token}
 - Lifecycle:
   - Backend issues on login
-  - Frontend stores in memory
-  - Automatically cleared when page refresh (OK, user must login again)
+  - Frontend luu vao session object
+  - Khi app khoi dong lai, frontend bootstrap lai auth state tu localStorage
 
 ### Refresh Token
 - TTL: 7 days
-- Stored: HttpOnly cookie (automatic)
-- Sent: Cookie header (auto by browser)
+- Stored: localStorage trong `khaleo-auth-session`
+- Sent: JSON body cho `/api/v1/auth/refresh` va `/api/v1/auth/logout`
 - Lifecycle:
   - Backend issues on login
-  - Frontend does NOT need to store (auto via cookie)
-  - Before access token expires, frontend silently calls refresh endpoint
-  - Backend rotates: invalidates old token, issues new one
+  - Frontend luu kem access token
+  - Khi API tra 401, frontend thu refresh roi retry 1 lan
+  - Backend giu nguyen refresh token (khong rotate), chi cap access token moi
 
 ### Refresh Strategy
 ```typescript
-// Frontend: Before every API call
+// Frontend: requestJson() trong apiClient retry 1 lan khi gap 401
 async function withTokenRefresh(apiCall) {
   try {
     return await apiCall();
   } catch (error) {
     if (error.status === 401 && canRetry) {
-      // Try refresh
-      await refreshAccessToken();
+      // Try refresh bang refreshToken trong localStorage session
+      await refreshAccessToken(storedRefreshToken);
       // Retry original call
       return await apiCall();
     }
     throw error;
   }
 }
-
-// Alternative: Proactive refresh (before expiry)
-useEffect(() => {
-  const token = getAccessToken();
-  if (token) {
-    const decoded = jwtDecode(token);
-    const expiresIn = decoded.exp * 1000 - Date.now();
-    const refreshIn = expiresIn - 60000; // 1 min before expiry
-    
-    const timer = setTimeout(() => {
-      refreshAccessToken();
-    }, Math.max(refreshIn, 0));
-    
-    return () => clearTimeout(timer);
-  }
-}, [accessToken]);
 ```
 
 ---
@@ -510,8 +526,12 @@ useEffect(() => {
 - Answer: required, min 1 char, max 5000
 
 ### Login
-- Email: required, valid email format
+- Identifier: required (username hoac email)
 - Password: required, min 8 chars
+
+### JWT Claims (access token)
+- Required: `sub`, `role`, `username`
+- Transitional/backward-compatibility: `email` (chi co khi user co email)
 
 ---
 
