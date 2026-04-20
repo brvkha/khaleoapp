@@ -10,6 +10,8 @@ import {
   updatePrivateDeck,
 } from '../../services/privateWorkspaceApi'
 import { AddCardModal } from '../../components/AddCardModal'
+import { PlainTextPreview } from '../cards/components/PlainTextPreview'
+import { richHtmlToPlainText } from '../cards/utils/richHtmlToPlainText'
 
 type DeckOption = {
   id: string
@@ -20,8 +22,10 @@ type DeckOption = {
 type CardItem = {
   id: string
   deckId: string
-  term: string
-  answer: string
+  frontContent: string
+  backContent: string
+  term?: string
+  answer?: string
   version: number
 }
 
@@ -151,8 +155,8 @@ export function CardsWorkspacePage() {
 
   const startEditCard = (card: CardItem) => {
     setEditingCardId(card.id)
-    setEditCardFront(card.term)
-    setEditCardBack(card.answer)
+    setEditCardFront(richHtmlToPlainText(card.frontContent) || card.term || '')
+    setEditCardBack(richHtmlToPlainText(card.backContent) || card.answer || '')
   }
 
   const cancelEditCard = () => {
@@ -424,10 +428,15 @@ export function CardsWorkspacePage() {
                                 onChange={(e) => setEditCardFront(e.target.value)}
                               />
                             ) : (
-                              <p className="whitespace-pre-wrap">{card.term}</p>
+                              <PlainTextPreview
+                                content={card.term || card.frontContent}
+                                lines={2}
+                                emptyText="(No front text)"
+                                className="text-slate-900"
+                              />
                             )}
                           </td>
-                          <td className="p-3 text-slate-600">
+                          <td className="p-3 text-slate-900">
                             {editingCardId === card.id ? (
                               <textarea
                                 className="w-full rounded border border-slate-300 px-2 py-1 text-sm"
@@ -436,7 +445,12 @@ export function CardsWorkspacePage() {
                                 onChange={(e) => setEditCardBack(e.target.value)}
                               />
                             ) : (
-                              <p className="max-h-24 overflow-y-auto whitespace-pre-wrap">{card.answer}</p>
+                              <PlainTextPreview
+                                content={card.answer || card.backContent}
+                                lines={2}
+                                emptyText="(No back text)"
+                                className="text-slate-700"
+                              />
                             )}
                           </td>
                           <td className="p-3 text-right">

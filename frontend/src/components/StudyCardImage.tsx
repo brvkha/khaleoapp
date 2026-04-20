@@ -14,7 +14,7 @@ export function StudyCardImage({ imageUrl, alt = 'card media', htmlContent }: St
     const safeHtml = sanitizeRichHtml(htmlContent)
     return (
       <div
-        className="prose max-w-none rounded border border-slate-200 bg-white p-3"
+        className="prose prose-slate prose-base max-w-none rounded-2xl border border-slate-200 bg-white/95 p-4 leading-relaxed shadow-sm transition [&_audio]:w-full [&_audio]:rounded-lg [&_img]:mx-auto [&_img]:my-3 [&_img]:max-h-64 [&_img]:rounded-xl [&_ol]:my-2 [&_p]:my-0 [&_p+p]:mt-2 [&_ul]:my-2"
         data-testid="study-rich-html"
         dangerouslySetInnerHTML={{ __html: safeHtml }}
       />

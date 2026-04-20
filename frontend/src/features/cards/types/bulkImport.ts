@@ -9,7 +9,7 @@ export type ParsedBulkCandidate = {
 export type ParsedBulkRejectedRow = {
   line: number
   raw: string
-  code: 'ROW_TOO_FEW_COLUMNS'
+  code: 'ROW_TOO_FEW_COLUMNS' | 'FRONT_REQUIRED' | 'BACK_REQUIRED'
   message: string
 }
 

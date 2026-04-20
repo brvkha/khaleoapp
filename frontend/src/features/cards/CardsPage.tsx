@@ -6,6 +6,7 @@ import { CardSearch } from '../search/CardSearch'
 import { MediaUpload } from '../media/MediaUpload'
 import { RichExamplesInput } from './RichExamplesInput'
 import { RichCardPreview } from './RichCardPreview'
+import { PlainTextPreview } from './components/PlainTextPreview'
 
 export function CardsPage() {
   const { decks } = useDecks()
@@ -145,8 +146,8 @@ export function CardsPage() {
       <ul className="mt-4 grid gap-3 md:grid-cols-2">
         {cards.map((card) => (
           <li className="rounded border border-slate-200 bg-white p-4" key={card.id}>
-            <p className="font-medium">{card.front}</p>
-            <p className="max-h-32 overflow-y-auto whitespace-pre-wrap text-sm text-slate-600">{card.back}</p>
+            <PlainTextPreview content={card.frontContent || card.front} lines={2} className="font-medium text-slate-900" />
+            <PlainTextPreview content={card.backContent || card.back} lines={3} className="mt-1 text-sm text-slate-600" />
             {card.mediaUrl ? <p className="text-xs text-indigo-700">media: {card.mediaUrl}</p> : null}
             <button
               className="mt-2 rounded bg-rose-600 px-3 py-1 text-white"

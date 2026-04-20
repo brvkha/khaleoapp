@@ -252,16 +252,24 @@ export function StudySessionPage() {
           {current ? (
             <article className="mt-3 h-[calc(100%-4rem)] rounded border border-slate-200 bg-white p-4">
               <div className="mt-3">
-                <button
-                  aria-label={revealed ? 'Flashcard back side' : 'Flashcard front side'}
-                  className="w-full rounded-2xl text-left"
-                  onClick={() => setRevealed(true)}
-                  type="button"
-                >
-                  <div className="rounded-3xl border border-slate-300 bg-gradient-to-br from-white to-slate-100 p-6 shadow-sm">
-                    <RichCardContent card={current} revealed={revealed} />
+                {!revealed ? (
+                  <button
+                    aria-label="Flashcard front side"
+                    className="w-full rounded-2xl text-left"
+                    onClick={() => setRevealed(true)}
+                    type="button"
+                  >
+                    <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-blue-50 p-6 shadow-md ring-1 ring-slate-100">
+                      <RichCardContent card={current} revealed={false} />
+                    </div>
+                  </button>
+                ) : (
+                  <div aria-label="Flashcard back side" className="w-full rounded-2xl text-left">
+                    <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-blue-50 p-6 shadow-md ring-1 ring-slate-100">
+                      <RichCardContent card={current} revealed />
+                    </div>
                   </div>
-                </button>
+                )}
               </div>
 
               {revealed ? (

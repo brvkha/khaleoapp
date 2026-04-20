@@ -1,4 +1,4 @@
-import { type FormEvent, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { BulkImportProgressBanner } from '../features/cards/components/BulkImportProgressBanner'
 import { RichTextEditor } from '../features/cards/components/RichTextEditor'
 import { runBulkChunkImport } from '../features/cards/services/runBulkChunkImport'
@@ -10,7 +10,7 @@ import { useAddCardModalStore } from '../store/addCardModalStore'
 interface AddCardModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (front: string, back: string) => void
+  onSubmit: (front: string, back: string) => void | Promise<void>
   deckName: string
   deckId?: string
 }
@@ -36,6 +36,12 @@ export function AddCardModal({ isOpen, onClose, onSubmit, deckName, deckId }: Ad
   } = useAddCardModalStore()
 
   const parsedPreview = useMemo(() => parseBulkCardInput(bulkRawText, separator), [bulkRawText, separator])
+  const previewCandidates = useMemo(() => parsedPreview.candidates.slice(0, 100), [parsedPreview.candidates])
+  const previewRejected = useMemo(() => parsedPreview.rejected.slice(0, 100), [parsedPreview.rejected])
+
+  useEffect(() => {
+    setParsedCandidates(parsedPreview.candidates)
+  }, [parsedPreview.candidates, setParsedCandidates])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -43,17 +49,13 @@ export function AddCardModal({ isOpen, onClose, onSubmit, deckName, deckId }: Ad
 
     setIsLoading(true)
     try {
-      await Promise.resolve(onSubmit(front.trim(), back.trim()))
+      await onSubmit(front.trim(), back.trim())
       setFront('')
       setBack('')
       onClose()
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handleParseBulk = () => {
-    setParsedCandidates(parsedPreview.candidates)
   }
 
   const runBulkImport = async (startAt = 0) => {
@@ -137,10 +139,34 @@ export function AddCardModal({ isOpen, onClose, onSubmit, deckName, deckId }: Ad
                 placeholder="Paste spreadsheet rows"
               />
               <div className="flex gap-2">
-                <button type="button" className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50" onClick={handleParseBulk}>Preview</button>
                 <button type="button" className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-50" disabled={!parsedCandidates.length || !deckId} onClick={() => runBulkImport(0)}>Import</button>
               </div>
-              <p className="text-xs text-slate-500">Candidates: {parsedPreview.candidates.length} | Rejected: {parsedPreview.rejected.length}</p>
+              <p className="text-xs text-slate-500">
+                Candidates: {parsedPreview.candidates.length} | Rejected: {parsedPreview.rejected.length}
+              </p>
+              {parsedPreview.candidates.length > 100 ? (
+                <p className="text-xs text-slate-500">Showing {previewCandidates.length}/{parsedPreview.candidates.length} cards...</p>
+              ) : null}
+              {previewCandidates.length > 0 ? (
+                <div className="max-h-64 space-y-2 overflow-y-auto rounded border border-slate-200 bg-slate-50 p-3" data-testid="bulk-preview-list">
+                  {previewCandidates.map((candidate) => (
+                    <div key={candidate.line} className="rounded border border-slate-200 bg-white p-2">
+                      <p className="text-xs font-medium text-slate-500">Line {candidate.line}</p>
+                      <p className="mt-1 text-sm font-medium text-slate-900 whitespace-pre-wrap">Front: {candidate.frontContent}</p>
+                      <p className="mt-1 text-sm text-slate-700 whitespace-pre-wrap">Back: {candidate.backContent}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {previewRejected.length > 0 ? (
+                <div className="max-h-40 space-y-2 overflow-y-auto rounded border border-rose-200 bg-rose-50 p-3" data-testid="bulk-preview-rejected">
+                  {previewRejected.map((row) => (
+                    <p key={`${row.line}-${row.code}`} className="text-sm text-rose-700">
+                      Line {row.line}: {row.message}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
               <BulkImportProgressBanner runState={runState} onRetry={() => runBulkImport(retryFromChunkIndex ?? 0)} />
             </div>
           )}

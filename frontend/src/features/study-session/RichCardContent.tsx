@@ -24,8 +24,11 @@ export function RichCardContent({ card, revealed }: RichCardContentProps) {
   if (!revealed) {
     return (
       <div className="space-y-4">
-        <div className="min-h-48 flex items-center justify-center text-center">
-          <StudyCardImage htmlContent={frontContent} />
+        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-indigo-500">Front</p>
+          <div className="min-h-48 flex items-center justify-center text-center">
+            <StudyCardImage htmlContent={frontContent} />
+          </div>
         </div>
         {card.imageUrl ? <StudyCardImage imageUrl={card.imageUrl} alt={term} /> : null}
       </div>
@@ -33,17 +36,23 @@ export function RichCardContent({ card, revealed }: RichCardContentProps) {
   }
 
   return (
-    <div className="space-y-3" data-testid="rich-card-back-content">
-      <StudyCardImage htmlContent={frontContent} />
+    <div className="space-y-4" data-testid="rich-card-back-content">
+      <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-indigo-500">Front</p>
+        <StudyCardImage htmlContent={frontContent} />
+      </div>
       {card.imageUrl ? <StudyCardImage imageUrl={card.imageUrl} alt={term} /> : null}
-      <StudyCardImage htmlContent={backContent} />
+      <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-600">Back</p>
+        <StudyCardImage htmlContent={backContent} />
+      </div>
       {card.phonetic || card.partOfSpeech ? (
-        <div className="text-sm text-slate-600" data-testid="rich-card-metadata">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600" data-testid="rich-card-metadata">
           {card.phonetic ? <p>Phonetic: {card.phonetic}</p> : null}
           {card.partOfSpeech ? <p>Part of speech: {card.partOfSpeech}</p> : null}
         </div>
       ) : null}
-      <div className="max-h-36 overflow-y-auto rounded border border-slate-200 p-2" data-testid="rich-card-examples-scroll" ref={examplesRef}>
+      <div className="max-h-36 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/70 p-3" data-testid="rich-card-examples-scroll" ref={examplesRef}>
         {examples.length === 0 ? (
           <p className="text-sm text-slate-400">No examples</p>
         ) : (
