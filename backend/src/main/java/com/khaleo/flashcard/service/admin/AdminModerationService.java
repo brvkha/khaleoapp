@@ -231,9 +231,9 @@ public class AdminModerationService {
             Card updated = relationalPersistenceService.updateCard(
                     cardId,
                     new RelationalPersistenceService.UpdateCardRequest(
-                            request.frontText(),
+                            request.frontContent(),
                             request.frontMediaUrl(),
-                            request.backText(),
+                            request.backContent(),
                             request.backMediaUrl()));
             writeAudit(actorId, AdminActionType.CARD_EDIT, AdminTargetType.CARD, cardId, AdminActionStatus.SUCCESS, null);
             newRelicAuthInstrumentation.recordAdminModerationOutcome("CARD_EDIT", "success", Map.of("adminUserId", actorId, "cardId", cardId));
@@ -326,7 +326,7 @@ public class AdminModerationService {
             case CARD -> cardRepository.findById(targetId)
                     .map(card -> {
                         String deckName = card.getDeck() != null ? card.getDeck().getName() : "unknown deck";
-                        String front = card.getFrontText() == null ? "" : card.getFrontText();
+                        String front = card.getFrontContent() == null ? "" : card.getFrontContent();
                         return deckName + " :: " + front;
                     })
                     .orElse("unknown card");

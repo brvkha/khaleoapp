@@ -1,12 +1,25 @@
 import { useState } from 'react'
+import { sanitizeRichHtml } from '../features/cards/utils/sanitizeRichHtml'
 
 type StudyCardImageProps = {
-  imageUrl: string
-  alt: string
+  imageUrl?: string
+  alt?: string
+  htmlContent?: string
 }
 
-export function StudyCardImage({ imageUrl, alt }: StudyCardImageProps) {
+export function StudyCardImage({ imageUrl, alt = 'card media', htmlContent }: StudyCardImageProps) {
   const [failed, setFailed] = useState(false)
+
+  if (htmlContent) {
+    const safeHtml = sanitizeRichHtml(htmlContent)
+    return (
+      <div
+        className="prose max-w-none rounded border border-slate-200 bg-white p-3"
+        data-testid="study-rich-html"
+        dangerouslySetInnerHTML={{ __html: safeHtml }}
+      />
+    )
+  }
 
   if (!imageUrl || failed) {
     return (

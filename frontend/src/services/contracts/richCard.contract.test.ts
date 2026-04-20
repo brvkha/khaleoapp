@@ -9,8 +9,8 @@ describe('rich card contract mapping', () => {
           {
             id: 'c1',
             deckId: 'd1',
-            term: 'Abstraction',
-            answer: 'Generalized representation',
+            frontContent: '<p>Abstraction</p>',
+            backContent: '<p>Generalized representation</p>',
             examples: ['Example one'],
             version: 1,
             imageUrl: null,
@@ -29,8 +29,8 @@ describe('rich card contract mapping', () => {
           {
             id: 'c2',
             deckId: 'd1',
-            term: '',
-            answer: 'Answer',
+            frontContent: '',
+            backContent: '<p>Answer</p>',
             examples: [],
             version: 0,
           },

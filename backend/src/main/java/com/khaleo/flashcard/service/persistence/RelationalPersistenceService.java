@@ -55,6 +55,8 @@ public class RelationalPersistenceService {
     private final PersistenceValidationExceptionMapper exceptionMapper;
     private final CardLearningStateUpdateService cardLearningStateUpdateService;
     private final DeckCardAccessGuard deckCardAccessGuard;
+    private final CardHtmlSanitizer cardHtmlSanitizer;
+    private final CardSearchTextBuilder cardSearchTextBuilder;
     private final MediaReferenceService mediaReferenceService;
     private final NewRelicDeckMediaInstrumentation deckMediaInstrumentation;
     private final FeatureTelemetryLogger telemetryLogger;
@@ -240,13 +242,19 @@ public class RelationalPersistenceService {
         }
 
         try {
-            validateRichCardRequest(request.term(), request.answer(), request.imageUrl(), request.examples());
+            String frontContent = cardHtmlSanitizer.sanitize(request.frontContent(), "FRONT_REQUIRED");
+            String backContent = cardHtmlSanitizer.sanitize(request.backContent(), "BACK_REQUIRED");
+            String searchText = cardSearchTextBuilder.fromCanonicalHtml(frontContent, backContent);
+            validateRichCardRequest(frontContent, backContent, request.imageUrl(), request.examples());
 
             String examplesJson = writeExamplesJson(normalizeExamples(request.examples()));
             Card card = Card.builder()
                     .deck(deck)
-                    .frontText(request.term())
-                    .backText(request.answer())
+                    .frontContent(frontContent)
+                    .backContent(backContent)
+                    .searchText(searchText)
+                    .frontText(frontContent)
+                    .backText(backContent)
                 .frontMediaUrl(request.imageUrl())
                 .backMediaUrl(request.imageUrl())
                 .imageUrl(request.imageUrl())
@@ -313,11 +321,17 @@ public class RelationalPersistenceService {
                     "Card version conflict for cardId=" + cardId);
         }
 
-        validateRichCardRequest(request.term(), request.answer(), request.imageUrl(), request.examples());
+        String frontContent = cardHtmlSanitizer.sanitize(request.frontContent(), "FRONT_REQUIRED");
+        String backContent = cardHtmlSanitizer.sanitize(request.backContent(), "BACK_REQUIRED");
+        String searchText = cardSearchTextBuilder.fromCanonicalHtml(frontContent, backContent);
+        validateRichCardRequest(frontContent, backContent, request.imageUrl(), request.examples());
         String examplesJson = writeExamplesJson(normalizeExamples(request.examples()));
 
-        card.setTerm(request.term());
-        card.setAnswer(request.answer());
+        card.setFrontContent(frontContent);
+        card.setBackContent(backContent);
+        card.setSearchText(searchText);
+        card.setTerm(frontContent);
+        card.setAnswer(backContent);
         card.setFrontMediaUrl(request.imageUrl());
         card.setBackMediaUrl(request.imageUrl());
         card.setImageUrl(request.imageUrl());
@@ -432,8 +446,8 @@ public class RelationalPersistenceService {
         }
 
     public record CreateCardRequest(
-            String term,
-            String answer,
+            String frontContent,
+            String backContent,
             String imageUrl,
             String partOfSpeech,
             String phonetic,
@@ -445,8 +459,8 @@ public class RelationalPersistenceService {
     }
 
         public record UpdateCardRequest(
-            String term,
-            String answer,
+                    String frontContent,
+                    String backContent,
             String imageUrl,
             String partOfSpeech,
             String phonetic,

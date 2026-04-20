@@ -170,8 +170,8 @@ export function CardsWorkspacePage() {
       setError('')
       await updatePrivateCard({
         cardId: editingCardId,
-        term: editCardFront.trim(),
-        answer: editCardBack.trim(),
+        frontContent: editCardFront.trim(),
+        backContent: editCardBack.trim(),
         version: cards.find((card) => card.id === editingCardId)?.version ?? 0,
       })
       const page = await searchPrivateDeckCards(selectedDeckId, searchTerm, currentPage, pageSize)
@@ -192,8 +192,8 @@ export function CardsWorkspacePage() {
       setError('')
       await createPrivateCard({
         deckId: selectedDeckId,
-        term: front,
-        answer: back,
+        frontContent: front,
+        backContent: back,
         examples: [],
       })
       const page = await searchPrivateDeckCards(selectedDeckId, searchTerm, currentPage, pageSize)
@@ -547,6 +547,7 @@ export function CardsWorkspacePage() {
         onClose={() => setShowAddCardModal(false)}
         onSubmit={handleAddCard}
         deckName={selectedDeck?.name || 'New Deck'}
+        deckId={selectedDeckId || undefined}
       />
     </section>
   )

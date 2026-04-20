@@ -9,6 +9,8 @@ export type StudySessionCardDto = {
   partOfSpeech?: string | null
   phonetic?: string | null
   examples?: string[]
+  frontContent?: string
+  backContent?: string
   frontText: string
   backText: string
   state: 'NEW' | 'LEARNING' | 'REVIEW' | 'RELEARNING' | 'MASTERED'
@@ -41,8 +43,10 @@ export async function getNextSessionCards(deckId: string): Promise<StudySessionC
   )
   return response.items.map((item) => ({
     ...item,
-    term: item.term ?? item.frontText,
-    answer: item.answer ?? item.backText,
+    frontContent: item.frontContent ?? item.frontText,
+    backContent: item.backContent ?? item.backText,
+    term: item.term ?? item.frontContent ?? item.frontText,
+    answer: item.answer ?? item.backContent ?? item.backText,
     examples: item.examples ?? [],
   }))
 }

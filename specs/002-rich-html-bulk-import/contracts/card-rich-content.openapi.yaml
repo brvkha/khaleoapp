@@ -1,0 +1,216 @@
+openapi: 3.0.3
+info:
+  title: Khaleo Card Rich Content and Bulk Import API
+  version: 1.0.0-phase1
+  description: >-
+    Contract for canonical rich HTML card payloads and bulk card import behavior
+    in feature 002-rich-html-bulk-import.
+servers:
+  - url: /api/v1
+paths:
+  /decks/{deckId}/cards:
+    post:
+      summary: Create a single card using canonical rich HTML fields
+      operationId: createCard
+      tags: [Cards]
+      parameters:
+        - name: deckId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CanonicalCardWriteRequest'
+      responses:
+        '201':
+          description: Card created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardResponse'
+        '400':
+          description: Validation failed
+  /cards/{cardId}:
+    put:
+      summary: Full update of a card (phase 1 canonical PUT semantics)
+      operationId: updateCard
+      tags: [Cards]
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/CanonicalCardWriteRequest'
+                - type: object
+                  properties:
+                    version:
+                      type: integer
+                      format: int64
+                  required: [version]
+      responses:
+        '200':
+          description: Card updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardResponse'
+        '400':
+          description: Validation failed or incomplete canonical payload
+        '409':
+          description: Optimistic lock conflict
+  /decks/{deckId}/cards/bulk:
+    post:
+      summary: Bulk create cards with partial success support
+      operationId: bulkCreateCards
+      tags: [Cards]
+      parameters:
+        - name: deckId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkCreateCardsRequest'
+      responses:
+        '200':
+          description: Full or partial success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkCreateCardsResponse'
+              examples:
+                partialSuccess:
+                  value:
+                    successCount: 2
+                    failedCount: 1
+                    errors:
+                      - line: 14
+                        code: FRONT_REQUIRED
+                        message: FRONT_REQUIRED
+        '400':
+          description: Request-level validation failure (e.g. cards length > 500)
+          content:
+            application/json:
+              examples:
+                tooManyCards:
+                  value:
+                    status: 400
+                    message: "cards: size must be between 1 and 500"
+components:
+  schemas:
+    CanonicalCardWriteRequest:
+      type: object
+      required: [frontContent, backContent]
+      properties:
+        frontContent:
+          type: string
+          minLength: 1
+          description: Sanitized HTML canonical front content
+        backContent:
+          type: string
+          minLength: 1
+          description: Sanitized HTML canonical back content
+      additionalProperties: false
+    CardResponse:
+      type: object
+      required:
+        - id
+        - deckId
+        - frontContent
+        - backContent
+        - version
+      properties:
+        id:
+          type: string
+          format: uuid
+        deckId:
+          type: string
+          format: uuid
+        frontContent:
+          type: string
+        backContent:
+          type: string
+        version:
+          type: integer
+          format: int64
+    BulkCreateCardsRequest:
+      type: object
+      required: [cards]
+      properties:
+        cards:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/BulkCreateCardItem'
+      additionalProperties: false
+    BulkCreateCardItem:
+      type: object
+      required: [line, frontContent, backContent]
+      properties:
+        line:
+          type: integer
+          minimum: 1
+          description: Original textarea line number including blank lines
+        frontContent:
+          type: string
+          minLength: 1
+        backContent:
+          type: string
+          minLength: 1
+      additionalProperties: false
+    BulkCreateCardsResponse:
+      type: object
+      required: [successCount, failedCount, errors]
+      properties:
+        successCount:
+          type: integer
+          minimum: 0
+        failedCount:
+          type: integer
+          minimum: 0
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkRowError'
+      additionalProperties: false
+    BulkRowError:
+      type: object
+      required: [line, code, message]
+      properties:
+        line:
+          type: integer
+          minimum: 1
+        code:
+          $ref: '#/components/schemas/BulkRowErrorCode'
+        message:
+          type: string
+          minLength: 1
+      additionalProperties: false
+    BulkRowErrorCode:
+      type: string
+      enum:
+        - ROW_TOO_FEW_COLUMNS
+        - FRONT_REQUIRED
+        - BACK_REQUIRED
+        - MEDIA_DOMAIN_NOT_ALLOWED
+        - HTML_UNRECOVERABLE
+

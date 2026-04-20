@@ -10,6 +10,8 @@ export type PrivateDeckDto = {
 export type PrivateCardDto = {
   id: string
   deckId: string
+  frontContent: string
+  backContent: string
   term: string
   answer: string
   imageUrl: string | null
@@ -104,8 +106,8 @@ export async function searchPrivateDeckCards(deckId: string, query: string, page
 
 export async function createPrivateCard(payload: {
   deckId: string
-  term: string
-  answer: string
+  frontContent: string
+  backContent: string
   imageUrl?: string | null
   partOfSpeech?: string | null
   phonetic?: string | null
@@ -114,8 +116,8 @@ export async function createPrivateCard(payload: {
   await requestJson(`/api/v1/decks/${payload.deckId}/cards`, {
     method: 'POST',
     body: JSON.stringify({
-      term: payload.term,
-      answer: payload.answer,
+      frontContent: payload.frontContent,
+      backContent: payload.backContent,
       imageUrl: payload.imageUrl ?? null,
       partOfSpeech: payload.partOfSpeech ?? null,
       phonetic: payload.phonetic ?? null,
@@ -132,8 +134,8 @@ export async function deletePrivateCard(cardId: string): Promise<void> {
 
 export async function updatePrivateCard(payload: {
   cardId: string
-  term: string
-  answer: string
+  frontContent: string
+  backContent: string
   imageUrl?: string | null
   partOfSpeech?: string | null
   phonetic?: string | null
@@ -143,8 +145,8 @@ export async function updatePrivateCard(payload: {
   await requestJson(`/api/v1/cards/${payload.cardId}`, {
     method: 'PUT',
     body: JSON.stringify({
-      term: payload.term,
-      answer: payload.answer,
+      frontContent: payload.frontContent,
+      backContent: payload.backContent,
       imageUrl: payload.imageUrl ?? null,
       partOfSpeech: payload.partOfSpeech ?? null,
       phonetic: payload.phonetic ?? null,

@@ -3,10 +3,12 @@ package com.khaleo.flashcard.controller.card;
 import com.khaleo.flashcard.controller.card.dto.CardResponse;
 import com.khaleo.flashcard.controller.card.dto.CardSearchQuery;
 import com.khaleo.flashcard.controller.card.dto.CreateCardRequest;
+import com.khaleo.flashcard.controller.card.dto.BulkCreateCardsRequest;
 import com.khaleo.flashcard.controller.card.dto.UpdateCardRequest;
 import com.khaleo.flashcard.controller.common.PagedResponse;
 import com.khaleo.flashcard.config.FeatureTelemetryLogger;
 import com.khaleo.flashcard.entity.Card;
+import com.khaleo.flashcard.service.persistence.BulkCardImportService;
 import com.khaleo.flashcard.service.persistence.RelationalPersistenceService;
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CardController {
 
     private final RelationalPersistenceService relationalPersistenceService;
+    private final BulkCardImportService bulkCardImportService;
     private final FeatureTelemetryLogger telemetryLogger;
 
     @PostMapping("/decks/{deckId}/cards")
@@ -41,8 +44,8 @@ public class CardController {
             Card created = relationalPersistenceService.createCard(
                 deckId,
                 new RelationalPersistenceService.CreateCardRequest(
-                    request.term(),
-                    request.answer(),
+                    request.frontContent(),
+                    request.backContent(),
                     request.imageUrl(),
                     request.partOfSpeech(),
                     request.phonetic(),
@@ -83,8 +86,8 @@ public class CardController {
             Card updated = relationalPersistenceService.updateCard(
                     id,
                     new RelationalPersistenceService.UpdateCardRequest(
-                            request.term(),
-                            request.answer(),
+                            request.frontContent(),
+                            request.backContent(),
                             request.imageUrl(),
                             request.partOfSpeech(),
                             request.phonetic(),
@@ -97,6 +100,13 @@ public class CardController {
                     Map.of("cardId", id, "error", ex.getClass().getSimpleName()));
             throw ex;
         }
+    }
+
+    @PostMapping("/decks/{deckId}/cards/bulk")
+    public BulkCreateCardsRequest.BulkCreateCardsResponse bulkCreateCards(
+            @PathVariable("deckId") UUID deckId,
+            @Valid @RequestBody BulkCreateCardsRequest request) {
+        return bulkCardImportService.importCards(deckId, request);
     }
 
     @DeleteMapping("/cards/{id}")
