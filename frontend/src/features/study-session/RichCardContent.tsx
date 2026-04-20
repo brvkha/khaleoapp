@@ -13,7 +13,6 @@ export function RichCardContent({ card, revealed }: RichCardContentProps) {
   const frontContent = useMemo(() => card.frontContent ?? card.frontText, [card.frontContent, card.frontText])
   const backContent = useMemo(() => card.backContent ?? card.backText, [card.backContent, card.backText])
   const term = useMemo(() => card.term ?? frontContent, [frontContent, card.term])
-  const examples = useMemo(() => card.examples ?? [], [card.examples])
 
   useEffect(() => {
     if (examplesRef.current) {
@@ -52,17 +51,6 @@ export function RichCardContent({ card, revealed }: RichCardContentProps) {
           {card.partOfSpeech ? <p>Part of speech: {card.partOfSpeech}</p> : null}
         </div>
       ) : null}
-      <div className="max-h-36 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/70 p-3" data-testid="rich-card-examples-scroll" ref={examplesRef}>
-        {examples.length === 0 ? (
-          <p className="text-sm text-slate-400">No examples</p>
-        ) : (
-          <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
-            {examples.map((example, index) => (
-              <li key={`${card.cardId}-ex-${index}`}>{example}</li>
-            ))}
-          </ul>
-        )}
-      </div>
     </div>
   )
 }
