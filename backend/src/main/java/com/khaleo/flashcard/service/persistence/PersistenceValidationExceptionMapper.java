@@ -43,6 +43,9 @@ public class PersistenceValidationExceptionMapper {
         String detail = extractDetail(ex).toLowerCase(Locale.ROOT);
         if (containsAny(
                 detail,
+                "front_required",
+                "back_required",
+                "html_unrecoverable",
                 "front and back must each contain",
                 "ck_cards_front_content",
                 "ck_cards_back_content",
