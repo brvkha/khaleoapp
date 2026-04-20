@@ -43,7 +43,8 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
                     or (:frontText is not null and lower(coalesce(c.searchText, '')) like lower(concat('%', :frontText, '%')))
                     or (:backText is not null and lower(coalesce(c.searchText, '')) like lower(concat('%', :backText, '%')))
                 )
-                and (:vocabulary is null or lower(coalesce(c.searchText, '')) like lower(concat('%', :vocabulary, '%')))
+                and (:vocabulary is null
+                    or concat(' ', lower(coalesce(c.searchText, '')), ' ') like concat('% ', lower(:vocabulary), ' %'))
             """)
     Page<Card> searchInDeck(
             @Param("deckId") UUID deckId,

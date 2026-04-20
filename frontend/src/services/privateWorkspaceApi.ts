@@ -1,4 +1,5 @@
 import { requestJson } from './apiClient'
+import { richHtmlToPlainText } from '../features/cards/utils/richHtmlToPlainText'
 
 export type PrivateDeckDto = {
   id: string
@@ -21,6 +22,11 @@ export type PrivateCardDto = {
   version: number
   frontText?: string
   backText?: string
+}
+
+type PrivateCardApiDto = Omit<PrivateCardDto, 'term' | 'answer'> & {
+  term?: string
+  answer?: string
 }
 
 export type DeckStatsDto = {
@@ -92,11 +98,18 @@ export async function deletePrivateDeck(deckId: string): Promise<void> {
 
 export async function searchPrivateDeckCards(deckId: string, query: string, pageNum = 0, pageSize = 50): Promise<PrivateCardSearchPage> {
   const encoded = encodeURIComponent(query)
-  const page = await requestJson<PagedResponse<PrivateCardDto>>(
+  const page = await requestJson<PagedResponse<PrivateCardApiDto>>(
     `/api/v1/private/decks/${deckId}/cards/search?frontText=${encoded}&backText=${encoded}&page=${pageNum}&size=${pageSize}`,
   )
+
+  const items: PrivateCardDto[] = page.content.map((card) => ({
+    ...card,
+    term: card.term ?? card.frontText ?? richHtmlToPlainText(card.frontContent),
+    answer: card.answer ?? card.backText ?? richHtmlToPlainText(card.backContent),
+  }))
+
   return {
-    items: page.content,
+    items,
     page: page.page,
     size: page.size,
     totalElements: page.totalElements,

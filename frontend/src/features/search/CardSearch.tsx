@@ -1,4 +1,5 @@
 import type { Card } from '../../types'
+import { PlainTextPreview } from '../cards/components/PlainTextPreview'
 
 type CardSearchProps = {
   cards: Card[]
@@ -20,8 +21,8 @@ export function CardSearch({ cards, query }: CardSearchProps) {
       <ul className="mt-2 space-y-2">
         {filtered.map((card) => (
           <li className="rounded border border-slate-200 bg-white p-3" key={card.id}>
-            <p className="font-medium">{card.front}</p>
-            <p className="text-sm text-slate-600">{card.back}</p>
+            <PlainTextPreview content={card.frontContent || card.front} lines={2} className="font-medium text-slate-900" />
+            <PlainTextPreview content={card.backContent || card.back} lines={2} className="mt-1 text-sm text-slate-600" />
           </li>
         ))}
       </ul>
