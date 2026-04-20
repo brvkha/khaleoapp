@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { banAdminUser, listAdminUsers, type AdminUserModerationItemDto, unbanAdminUser } from '../../../services/adminApi'
 import { useAuthStore } from '../../../store/authStore'
 import { useNotificationStore } from '../../../store/notificationStore'
@@ -16,7 +16,7 @@ export function AdminUsersPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [loading, setLoading] = useState(false)
 
-  const loadUsers = async (search = query, targetPage = page) => {
+  const loadUsers = useCallback(async (search = query, targetPage = page) => {
     setLoading(true)
     try {
       const response = await listAdminUsers({ query: search, page: targetPage, size, sortBy, sortDir })
@@ -27,14 +27,14 @@ export function AdminUsersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, query, size, sortBy, sortDir])
 
   useEffect(() => {
     const timer = setTimeout(() => {
       void loadUsers(query, page)
     }, 250)
     return () => clearTimeout(timer)
-  }, [query, page, size, sortBy, sortDir])
+  }, [loadUsers, page, query])
 
   const handleBan = async (candidate: AdminUserModerationItemDto, action: 'ban' | 'unban') => {
     if (currentUser?.id === candidate.id) {

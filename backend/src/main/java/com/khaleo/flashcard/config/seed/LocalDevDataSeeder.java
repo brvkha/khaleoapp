@@ -192,74 +192,91 @@ public class LocalDevDataSeeder implements ApplicationRunner {
     }
 
     private int getCardCountByDeckCode(String deckCode) {
-        return switch (deckCode) {
-            case "EN-VOC-CORE-1500" -> 1500;
-            case "EN-VOC-PHRASAL-VERBS" -> 180;
-            case "EN-GRAM-ESSENTIALS" -> 120;
-            case "EN-SPEAKING-PATTERNS" -> 120;
-            case "TECH-SPRING-BOOT" -> 140;
-            case "DATA-SQL-ESSENTIALS" -> 120;
-            case "PRODUCT-UX-FOUNDATIONS" -> 100;
-            case "SCIENCE-BIO-CHEM" -> 120;
-            case "HISTORY-WORLD-MILESTONES" -> 120;
-            case "PRI-LEARNING-SCRATCH" -> 60;
-            case "PRI-ADMIN-REVIEW" -> 60;
-            default -> 40;
-        };
+        switch (deckCode) {
+            case "EN-VOC-CORE-1500":
+                return 1500;
+            case "EN-VOC-PHRASAL-VERBS":
+                return 180;
+            case "EN-GRAM-ESSENTIALS":
+            case "EN-SPEAKING-PATTERNS":
+            case "DATA-SQL-ESSENTIALS":
+            case "SCIENCE-BIO-CHEM":
+            case "HISTORY-WORLD-MILESTONES":
+                return 120;
+            case "TECH-SPRING-BOOT":
+                return 140;
+            case "PRODUCT-UX-FOUNDATIONS":
+                return 100;
+            case "PRI-LEARNING-SCRATCH":
+            case "PRI-ADMIN-REVIEW":
+                return 60;
+            default:
+                return 40;
+        }
     }
 
     private List<String[]> getCardContentByDeckCode(String deckCode, int count) {
-        return switch (deckCode) {
-            case "EN-VOC-CORE-1500" -> getEnglishVocabularyCoreCards(count);
-            case "EN-VOC-PHRASAL-VERBS" -> getPatternCards(
-                    count,
-                    List.of("look", "pick", "bring", "carry", "set", "take", "turn", "run", "break", "put"),
-                    List.of("up", "down", "off", "on", "through", "out", "away", "over", "into", "back"),
-                    "Phrasal Verb");
-            case "EN-GRAM-ESSENTIALS" -> getPatternCards(
-                    count,
-                    List.of("present simple", "present continuous", "past simple", "past continuous", "future simple",
-                            "present perfect", "past perfect", "modal verb", "passive voice", "conditional"),
-                    List.of("affirmative", "negative", "question", "time marker", "common error", "formal use"),
-                    "Grammar Pattern");
-            case "EN-SPEAKING-PATTERNS" -> getPatternCards(
-                    count,
-                    List.of("meeting opener", "status update", "clarification request", "feedback statement", "follow-up request",
-                            "disagreement phrase", "agreement phrase", "proposal phrase", "closing phrase", "small-talk starter"),
-                    List.of("friendly", "neutral", "professional", "concise", "polite", "direct"),
-                    "Speaking Pattern");
-            case "TECH-SPRING-BOOT" -> getPatternCards(
-                    count,
-                    List.of("bean lifecycle", "dependency injection", "transaction boundary", "controller mapping", "repository pattern",
-                            "service boundary", "security filter", "exception handler", "configuration property", "actuator endpoint"),
-                    List.of("purpose", "pitfall", "best practice", "debugging tip", "production note", "testing note"),
-                    "Spring Boot Concept");
-            case "DATA-SQL-ESSENTIALS" -> getPatternCards(
-                    count,
-                    List.of("primary key", "foreign key", "covering index", "composite index", "join strategy",
-                            "transaction isolation", "query plan", "normalization", "denormalization", "pagination"),
-                    List.of("definition", "trade-off", "usage", "performance", "anti-pattern", "example"),
-                    "SQL Concept");
-            case "PRODUCT-UX-FOUNDATIONS" -> getPatternCards(
-                    count,
-                    List.of("user goal", "pain point", "value proposition", "information hierarchy", "feedback loop",
-                            "error prevention", "empty state", "onboarding step", "success metric", "design constraint"),
-                    List.of("discovery", "prototype", "delivery", "measurement", "iteration"),
-                    "Product UX Concept");
-            case "SCIENCE-BIO-CHEM" -> getPatternCards(
-                    count,
-                    List.of("cell membrane", "enzyme activity", "gene expression", "acid-base balance", "chemical bond",
-                            "reaction rate", "energy transfer", "homeostasis", "molecular structure", "metabolic pathway"),
-                    List.of("definition", "mechanism", "example", "application", "common misconception"),
-                    "Science Concept");
-            case "HISTORY-WORLD-MILESTONES" -> getPatternCards(
-                    count,
-                    List.of("agricultural revolution", "industrial revolution", "printing press", "global trade route", "nation state",
-                            "civil rights movement", "cold war", "decolonization", "digital revolution", "public health reform"),
-                    List.of("cause", "impact", "timeline", "stakeholders", "legacy"),
-                    "History Concept");
-            default -> getGenericCards(deckCode, count);
-        };
+        switch (deckCode) {
+            case "EN-VOC-CORE-1500":
+                return getEnglishVocabularyCoreCards(count);
+            case "EN-VOC-PHRASAL-VERBS":
+                return getPatternCards(
+                        count,
+                        List.of("look", "pick", "bring", "carry", "set", "take", "turn", "run", "break", "put"),
+                        List.of("up", "down", "off", "on", "through", "out", "away", "over", "into", "back"),
+                        "Phrasal Verb");
+            case "EN-GRAM-ESSENTIALS":
+                return getPatternCards(
+                        count,
+                        List.of("present simple", "present continuous", "past simple", "past continuous", "future simple",
+                                "present perfect", "past perfect", "modal verb", "passive voice", "conditional"),
+                        List.of("affirmative", "negative", "question", "time marker", "common error", "formal use"),
+                        "Grammar Pattern");
+            case "EN-SPEAKING-PATTERNS":
+                return getPatternCards(
+                        count,
+                        List.of("meeting opener", "status update", "clarification request", "feedback statement", "follow-up request",
+                                "disagreement phrase", "agreement phrase", "proposal phrase", "closing phrase", "small-talk starter"),
+                        List.of("friendly", "neutral", "professional", "concise", "polite", "direct"),
+                        "Speaking Pattern");
+            case "TECH-SPRING-BOOT":
+                return getPatternCards(
+                        count,
+                        List.of("bean lifecycle", "dependency injection", "transaction boundary", "controller mapping", "repository pattern",
+                                "service boundary", "security filter", "exception handler", "configuration property", "actuator endpoint"),
+                        List.of("purpose", "pitfall", "best practice", "debugging tip", "production note", "testing note"),
+                        "Spring Boot Concept");
+            case "DATA-SQL-ESSENTIALS":
+                return getPatternCards(
+                        count,
+                        List.of("primary key", "foreign key", "covering index", "composite index", "join strategy",
+                                "transaction isolation", "query plan", "normalization", "denormalization", "pagination"),
+                        List.of("definition", "trade-off", "usage", "performance", "anti-pattern", "example"),
+                        "SQL Concept");
+            case "PRODUCT-UX-FOUNDATIONS":
+                return getPatternCards(
+                        count,
+                        List.of("user goal", "pain point", "value proposition", "information hierarchy", "feedback loop",
+                                "error prevention", "empty state", "onboarding step", "success metric", "design constraint"),
+                        List.of("discovery", "prototype", "delivery", "measurement", "iteration"),
+                        "Product UX Concept");
+            case "SCIENCE-BIO-CHEM":
+                return getPatternCards(
+                        count,
+                        List.of("cell membrane", "enzyme activity", "gene expression", "acid-base balance", "chemical bond",
+                                "reaction rate", "energy transfer", "homeostasis", "molecular structure", "metabolic pathway"),
+                        List.of("definition", "mechanism", "example", "application", "common misconception"),
+                        "Science Concept");
+            case "HISTORY-WORLD-MILESTONES":
+                return getPatternCards(
+                        count,
+                        List.of("agricultural revolution", "industrial revolution", "printing press", "global trade route", "nation state",
+                                "civil rights movement", "cold war", "decolonization", "digital revolution", "public health reform"),
+                        List.of("cause", "impact", "timeline", "stakeholders", "legacy"),
+                        "History Concept");
+            default:
+                return getGenericCards(deckCode, count);
+        }
     }
 
     private List<String[]> getEnglishVocabularyCoreCards(int count) {

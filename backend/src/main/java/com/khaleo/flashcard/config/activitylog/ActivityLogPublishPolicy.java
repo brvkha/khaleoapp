@@ -23,7 +23,24 @@ public interface ActivityLogPublishPolicy {
         return new DefaultActivityLogPublishPolicy(3, Duration.ofSeconds(2));
     }
 
-    record DefaultActivityLogPublishPolicy(int maxAttempts, Duration retryBackoff)
-            implements ActivityLogPublishPolicy {
+    final class DefaultActivityLogPublishPolicy implements ActivityLogPublishPolicy {
+
+        private final int maxAttempts;
+        private final Duration retryBackoff;
+
+        public DefaultActivityLogPublishPolicy(int maxAttempts, Duration retryBackoff) {
+            this.maxAttempts = maxAttempts;
+            this.retryBackoff = retryBackoff;
+        }
+
+        @Override
+        public int maxAttempts() {
+            return maxAttempts;
+        }
+
+        @Override
+        public Duration retryBackoff() {
+            return retryBackoff;
+        }
     }
 }

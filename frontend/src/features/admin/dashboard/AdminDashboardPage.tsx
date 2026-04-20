@@ -6,6 +6,7 @@ export function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStatsDto | null>(null)
   const [loading, setLoading] = useState(true)
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setLoading(true)
     void getAdminStats()
@@ -15,6 +16,7 @@ export function AdminDashboardPage() {
       })
       .finally(() => setLoading(false))
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <section>

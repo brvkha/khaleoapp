@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { banAdminDeck, listAdminDecks, type AdminDeckModerationItemDto, unbanAdminDeck } from '../../../services/adminApi'
 import { useNotificationStore } from '../../../store/notificationStore'
 
@@ -13,7 +13,7 @@ export function AdminDecksPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [loading, setLoading] = useState(false)
 
-  const loadDecks = async (search = query, targetPage = page) => {
+  const loadDecks = useCallback(async (search = query, targetPage = page) => {
     setLoading(true)
     try {
       const response = await listAdminDecks({ query: search, page: targetPage, size, sortBy, sortDir })
@@ -24,14 +24,14 @@ export function AdminDecksPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, query, size, sortBy, sortDir])
 
   useEffect(() => {
     const timer = setTimeout(() => {
       void loadDecks(query, page)
     }, 250)
     return () => clearTimeout(timer)
-  }, [query, page, size, sortBy, sortDir])
+  }, [loadDecks, page, query])
 
   const handleDeckModeration = async (candidate: AdminDeckModerationItemDto, action: 'ban' | 'unban') => {
     const verb = action === 'ban' ? 'Ban' : 'Unban'

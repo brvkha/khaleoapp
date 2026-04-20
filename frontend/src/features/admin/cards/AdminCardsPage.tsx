@@ -11,18 +11,27 @@ export function AdminCardsPage() {
   const [frontContent, setFrontContent] = useState('')
   const [backContent, setBackContent] = useState('')
 
+  const candidate = cards[0]
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!candidate) {
+      setFrontContent('')
+      setBackContent('')
+      return
+    }
+
+    setFrontContent(candidate.frontContent)
+    setBackContent(candidate.backContent)
+  }, [candidate])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   if (!cards.length) {
     return <p className="rounded border border-slate-200 bg-white p-4">No card to moderate.</p>
   }
 
-  const candidate = cards[0]
   const frontSummary = richHtmlToPlainText(candidate.frontContent || candidate.front)
   const backSummary = richHtmlToPlainText(candidate.backContent || candidate.back)
-
-  useEffect(() => {
-    setFrontContent(candidate.frontContent)
-    setBackContent(candidate.backContent)
-  }, [candidate.frontContent, candidate.backContent])
 
   return (
     <section>

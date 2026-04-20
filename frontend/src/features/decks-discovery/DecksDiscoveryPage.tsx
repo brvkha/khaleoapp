@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listPublicDecks, importPublicDeck, type PublicDeckSummaryDto } from '../../services/publicDiscoveryApi'
 import { useAuthStore } from '../../store/authStore'
@@ -17,7 +17,7 @@ export function DecksDiscoveryPage() {
   const pushSuccess = useNotificationStore((state) => state.pushSuccess)
   const pushError = useNotificationStore((state) => state.pushError)
 
-  const refresh = async (searchQuery = query) => {
+  const refresh = useCallback(async (searchQuery: string) => {
     setError('')
     setLoading(true)
     try {
@@ -30,11 +30,11 @@ export function DecksDiscoveryPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     void refresh('')
-  }, [])
+  }, [refresh])
 
   // Auto-search with debounce
   useEffect(() => {
@@ -43,7 +43,7 @@ export function DecksDiscoveryPage() {
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [query])
+  }, [query, refresh])
 
   return (
     <section>

@@ -34,7 +34,7 @@ describe('rich card contract mapping', () => {
             examples: [],
             version: 0,
           },
-        ] as any,
+        ],
       }),
     ).toBe(false)
   })

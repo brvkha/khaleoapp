@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   createPrivateCard,
   createPrivateDeck,
@@ -55,29 +55,28 @@ export function CardsWorkspacePage() {
   const [totalCards, setTotalCards] = useState(0)
   const [isLoadingCards, setIsLoadingCards] = useState(false)
 
-  const loadDecks = async () => {
+  const loadDecks = useCallback(async () => {
     try {
       const items = await listPrivateDecks('')
       setDecks(items)
-      if (items.length > 0 && !selectedDeckId) {
-        setSelectedDeckId(items[0].id)
+      if (items.length > 0) {
+        setSelectedDeckId((prev) => prev || items[0].id)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load private decks')
     }
-  }
-
-  useEffect(() => {
-    void loadDecks()
   }, [])
 
-  // Load cards on deck/search/page change
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    void loadDecks()
+  }, [loadDecks])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Load cards on deck/search/page change.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!selectedDeckId) {
-      setCards([])
-      setCurrentPage(0)
-      setTotalPages(0)
-      setTotalCards(0)
       return
     }
     setIsLoadingCards(true)
@@ -90,6 +89,7 @@ export function CardsWorkspacePage() {
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to search cards'))
       .finally(() => setIsLoadingCards(false))
   }, [selectedDeckId, searchTerm, currentPage, pageSize])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const applySearch = () => {
     setCurrentPage(0)

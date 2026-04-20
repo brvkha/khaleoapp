@@ -18,6 +18,7 @@ export function AdminModerationAuditPage() {
   const [sortBy, setSortBy] = useState<'createdAt' | 'actionType' | 'targetType' | 'status'>('createdAt')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setLoading(true)
     void listAdminModerationActions({
@@ -41,6 +42,7 @@ export function AdminModerationAuditPage() {
         setLoading(false)
       })
   }, [adminUserId, adminUsername, targetType, status, page, size, sortBy, sortDir])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleExportCsv = () => {
     void exportAdminModerationActionsCsv({
