@@ -11,6 +11,7 @@ import com.khaleo.flashcard.entity.enums.UserRole;
 import com.khaleo.flashcard.repository.CardRepository;
 import com.khaleo.flashcard.repository.DeckRepository;
 import com.khaleo.flashcard.repository.UserRepository;
+import com.khaleo.flashcard.integration.support.IntegrationPersistenceTestBase;
 import com.khaleo.flashcard.service.auth.JwtTokenService;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -25,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @AutoConfigureMockMvc
 @Transactional
 @SuppressWarnings("null")
-class AdminCardModerationRichContentContractTest {
+class AdminCardModerationRichContentContractTest extends IntegrationPersistenceTestBase {
 
     @Autowired
     private MockMvc mockMvc;
