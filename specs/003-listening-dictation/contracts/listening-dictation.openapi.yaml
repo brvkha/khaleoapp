@@ -1,0 +1,521 @@
+openapi: 3.0.3
+info:
+  title: Khaleo Listening Dictation API
+  version: 1.0.0-phase1
+  description: >-
+    Contract for Listening Dictation phase 1 including Admin CMS, learner workspace,
+    progress tracking, media access exchange, and dictionary proxy.
+servers:
+  - url: /api/v1
+paths:
+  /admin/listening/topics:
+    get:
+      summary: List listening topics
+      tags: [AdminListening]
+      responses:
+        '200':
+          description: Topic list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Topic'
+    post:
+      summary: Create topic
+      tags: [AdminListening]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicWriteRequest'
+      responses:
+        '201':
+          description: Topic created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Topic'
+  /admin/listening/topics/{topicId}/exercises:
+    post:
+      summary: Create exercise under a topic
+      tags: [AdminListening]
+      parameters:
+        - $ref: '#/components/parameters/topicId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExerciseWriteRequest'
+      responses:
+        '201':
+          description: Exercise created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exercise'
+        '409':
+          description: Duplicate slug within topic scope
+  /admin/listening/exercises/{exerciseId}/lessons:
+    post:
+      summary: Create lesson under an exercise
+      tags: [AdminListening]
+      parameters:
+        - $ref: '#/components/parameters/exerciseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonWriteRequest'
+      responses:
+        '201':
+          description: Lesson created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+        '409':
+          description: Duplicate slug within exercise scope
+  /admin/listening/lessons/{lessonId}/sentences/import-json:
+    post:
+      summary: Bulk import sentences by JSON payload
+      tags: [AdminListening]
+      parameters:
+        - $ref: '#/components/parameters/lessonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportSentencesRequest'
+      responses:
+        '200':
+          description: Import full or partial success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportSentencesResponse'
+  /admin/listening/lessons/{lessonId}/sentences/reorder:
+    put:
+      summary: Persist sentence order for one lesson
+      tags: [AdminListening]
+      parameters:
+        - $ref: '#/components/parameters/lessonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderSentencesRequest'
+      responses:
+        '200':
+          description: Reorder persisted
+
+  /listening/lessons/{lessonId}/workspace:
+    get:
+      summary: Get learner workspace payload for one lesson
+      tags: [Listening]
+      parameters:
+        - $ref: '#/components/parameters/lessonId'
+      responses:
+        '200':
+          description: Workspace payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonWorkspaceResponse'
+  /listening/progress/sentences/{sentenceId}:
+    post:
+      summary: Update sentence completion from learner action
+      tags: [Listening]
+      parameters:
+        - $ref: '#/components/parameters/sentenceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgressUpdateRequest'
+      responses:
+        '200':
+          description: Progress updated
+        '400':
+          description: Invalid action or payload
+  /listening/media/access:
+    post:
+      summary: Exchange object key/url metadata for short-lived media access URL
+      tags: [Listening]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaAccessRequest'
+      responses:
+        '200':
+          description: Presigned media access URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaAccessResponse'
+  /listening/dictionary:
+    get:
+      summary: Dictionary lookup via backend proxy (Cambridge)
+      tags: [Listening]
+      parameters:
+        - name: term
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Dictionary lookup success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DictionaryLookupResponse'
+        '503':
+          description: Provider unavailable (controlled fallback shape)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DictionaryLookupFailure'
+
+components:
+  parameters:
+    topicId:
+      name: topicId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    exerciseId:
+      name: exerciseId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    lessonId:
+      name: lessonId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    sentenceId:
+      name: sentenceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Topic:
+      type: object
+      required: [id, name, slug]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    TopicWriteRequest:
+      type: object
+      required: [name, slug]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        slug:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          nullable: true
+      additionalProperties: false
+
+    Exercise:
+      type: object
+      required: [id, topicId, name, slug, orderIndex]
+      properties:
+        id:
+          type: string
+          format: uuid
+        topicId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        orderIndex:
+          type: integer
+
+    ExerciseWriteRequest:
+      type: object
+      required: [name, slug, orderIndex]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        slug:
+          type: string
+          minLength: 1
+        orderIndex:
+          type: integer
+          minimum: 1
+      additionalProperties: false
+
+    Lesson:
+      type: object
+      required: [id, exerciseId, name, slug, orderIndex]
+      properties:
+        id:
+          type: string
+          format: uuid
+        exerciseId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        orderIndex:
+          type: integer
+        mediaUrl:
+          type: string
+          nullable: true
+        mediaType:
+          type: string
+          nullable: true
+          enum: [audio, video]
+
+    LessonWriteRequest:
+      type: object
+      required: [name, slug, orderIndex]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        slug:
+          type: string
+          minLength: 1
+        orderIndex:
+          type: integer
+          minimum: 1
+        mediaUrl:
+          type: string
+          nullable: true
+        mediaType:
+          type: string
+          nullable: true
+          enum: [audio, video]
+      additionalProperties: false
+
+    SentenceWriteRequest:
+      type: object
+      required: [transcript]
+      properties:
+        transcript:
+          type: string
+          minLength: 1
+        translation:
+          type: string
+          nullable: true
+        aliases:
+          type: object
+          additionalProperties:
+            type: string
+        mediaUrl:
+          type: string
+          nullable: true
+        startTime:
+          type: number
+          format: float
+          nullable: true
+          minimum: 0
+        endTime:
+          type: number
+          format: float
+          nullable: true
+      additionalProperties: false
+
+    ImportSentencesRequest:
+      type: object
+      required: [rows]
+      properties:
+        rows:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SentenceWriteRequest'
+      additionalProperties: false
+
+    ImportSentencesResponse:
+      type: object
+      required: [successCount, failedCount, errors]
+      properties:
+        successCount:
+          type: integer
+          minimum: 0
+        failedCount:
+          type: integer
+          minimum: 0
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportRowError'
+      additionalProperties: false
+
+    ImportRowError:
+      type: object
+      required: [row, message]
+      properties:
+        row:
+          type: integer
+          minimum: 1
+        message:
+          type: string
+
+    ReorderSentencesRequest:
+      type: object
+      required: [sentenceIds]
+      properties:
+        sentenceIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+      additionalProperties: false
+
+    LessonWorkspaceResponse:
+      type: object
+      required: [lesson, sentences, progress]
+      properties:
+        lesson:
+          $ref: '#/components/schemas/Lesson'
+        sentences:
+          type: array
+          items:
+            type: object
+            required: [id, orderIndex, transcript]
+            properties:
+              id:
+                type: string
+                format: uuid
+              orderIndex:
+                type: integer
+              transcript:
+                type: string
+              translation:
+                type: string
+                nullable: true
+              aliases:
+                type: object
+                additionalProperties:
+                  type: string
+              mediaUrl:
+                type: string
+                nullable: true
+              startTime:
+                type: number
+                nullable: true
+              endTime:
+                type: number
+                nullable: true
+        progress:
+          type: object
+          required: [completedCount, totalCount, percent]
+          properties:
+            completedCount:
+              type: integer
+              minimum: 0
+            totalCount:
+              type: integer
+              minimum: 0
+            percent:
+              type: number
+              format: float
+
+    ProgressUpdateRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [correct_check, skip]
+      additionalProperties: false
+
+    MediaAccessRequest:
+      type: object
+      required: [resourceType, resourceId]
+      properties:
+        resourceType:
+          type: string
+          enum: [lesson, sentence]
+        resourceId:
+          type: string
+          format: uuid
+      additionalProperties: false
+
+    MediaAccessResponse:
+      type: object
+      required: [url, expiresAt]
+      properties:
+        url:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+
+    DictionaryLookupResponse:
+      type: object
+      required: [term, entries]
+      properties:
+        term:
+          type: string
+        entries:
+          type: array
+          items:
+            type: object
+            properties:
+              ipa:
+                type: string
+                nullable: true
+              ukAudioUrl:
+                type: string
+                nullable: true
+              usAudioUrl:
+                type: string
+                nullable: true
+              definitions:
+                type: array
+                items:
+                  type: string
+
+    DictionaryLookupFailure:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [PROVIDER_UNAVAILABLE]
+        message:
+          type: string
+
