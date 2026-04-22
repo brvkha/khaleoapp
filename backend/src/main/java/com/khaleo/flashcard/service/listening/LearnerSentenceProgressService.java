@@ -105,7 +105,27 @@ public class LearnerSentenceProgressService {
     if (auth == null || !auth.isAuthenticated()) {
       throw new IllegalStateException("User not authenticated");
     }
-    // In a real app, extract from auth principal
-    return UUID.fromString("00000000-0000-0000-0000-000000000000");
+
+    return resolveUserId(auth.getPrincipal(), auth.getName());
+  }
+
+  private UUID resolveUserId(Object principal, String username) {
+    if (principal instanceof UUID uuid) {
+      return uuid;
+    }
+
+    String candidate = principal instanceof String principalString ? principalString : username;
+    if (candidate != null && !candidate.isBlank() && !"anonymousUser".equals(candidate)) {
+      String trimmed = candidate.trim();
+      try {
+        return UUID.fromString(trimmed);
+      } catch (IllegalArgumentException ignored) {
+        return userRepository.findByUsername(trimmed)
+            .map(User::getId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + trimmed));
+      }
+    }
+
+    throw new IllegalStateException("User not authenticated");
   }
 }

@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ public class LearnerListeningWorkspaceService {
   private final LessonRepository lessonRepository;
   private final SentenceRepository sentenceRepository;
   private final UserSentenceProgressRepository progressRepository;
+  private final UserRepository userRepository;
 
   /**
    * Get lesson workspace with all sentences and learner's progress state.
@@ -82,8 +84,32 @@ public class LearnerListeningWorkspaceService {
     if (auth == null || !auth.isAuthenticated()) {
       throw new IllegalStateException("User not authenticated");
     }
-    // In a real app, extract user ID from auth principal
-    // For now, return a placeholder
-    return UUID.fromString("00000000-0000-0000-0000-000000000000");
+
+    Object principal = auth.getPrincipal();
+    if (principal instanceof UUID uuid) {
+      return uuid;
+    }
+    if (principal instanceof String principalString) {
+      return parseAuthenticatedUserId(principalString);
+    }
+    if (principal instanceof UserDetails userDetails) {
+      return parseAuthenticatedUserId(userDetails.getUsername());
+    }
+
+    return parseAuthenticatedUserId(auth.getName());
+  }
+
+  private UUID parseAuthenticatedUserId(String rawUserId) {
+    if (rawUserId == null || rawUserId.isBlank() || "anonymousUser".equals(rawUserId)) {
+      throw new IllegalStateException("User not authenticated");
+    }
+
+    try {
+      return UUID.fromString(rawUserId.trim());
+    } catch (IllegalArgumentException ex) {
+      return userRepository.findByUsername(rawUserId.trim())
+          .map(User::getId)
+          .orElseThrow(() -> new IllegalStateException("Authenticated user not found: " + rawUserId, ex));
+    }
   }
 }

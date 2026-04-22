@@ -30,6 +30,6 @@ describe('rich card layout', () => {
 
     expect(text.indexOf('Term')).toBeLessThan(text.indexOf('Answer'))
     expect(text.indexOf('Answer')).toBeLessThan(text.indexOf('Example one'))
-    expect(screen.queryByTestId('rich-card-metadata')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('rich-card-metadata')).toBeNull()
   })
 })

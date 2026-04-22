@@ -12,6 +12,14 @@ export async function listTopics(): Promise<ListeningTopic[]> {
   return await requestJson<ListeningTopic[]>('/api/v1/admin/listening/topics')
 }
 
+export async function getTopics(): Promise<ListeningTopic[]> {
+  return await listTopics()
+}
+
+export async function getTopic(topicId: string): Promise<ListeningTopic> {
+  return await requestJson<ListeningTopic>(`/api/v1/admin/listening/topics/${topicId}`)
+}
+
 export async function createTopic(payload: ListeningTopic): Promise<ListeningTopic> {
   return await requestJson<ListeningTopic>('/api/v1/admin/listening/topics', {
     method: 'POST',
@@ -32,6 +40,10 @@ export async function deleteTopic(topicId: string): Promise<void> {
 
 export async function listExercises(topicId: string): Promise<ListeningExercise[]> {
   return await requestJson<ListeningExercise[]>(`/api/v1/admin/listening/topics/${topicId}/exercises`)
+}
+
+export async function getExercisesByTopic(topicId: string): Promise<ListeningExercise[]> {
+  return await listExercises(topicId)
 }
 
 export async function createExercise(topicId: string, payload: ListeningExercise): Promise<ListeningExercise> {
@@ -56,6 +68,10 @@ export async function listLessons(exerciseId: string): Promise<ListeningLesson[]
   return await requestJson<ListeningLesson[]>(`/api/v1/admin/listening/exercises/${exerciseId}/lessons`)
 }
 
+export async function getLessonsByExercise(exerciseId: string): Promise<ListeningLesson[]> {
+  return await listLessons(exerciseId)
+}
+
 export async function createLesson(exerciseId: string, payload: ListeningLesson): Promise<ListeningLesson> {
   return await requestJson<ListeningLesson>(`/api/v1/admin/listening/exercises/${exerciseId}/lessons`, {
     method: 'POST',
@@ -76,6 +92,10 @@ export async function deleteLesson(lessonId: string): Promise<void> {
 
 export async function listSentences(lessonId: string): Promise<ListeningSentence[]> {
   return await requestJson<ListeningSentence[]>(`/api/v1/admin/listening/lessons/${lessonId}/sentences`)
+}
+
+export async function getSentencesByLesson(lessonId: string): Promise<ListeningSentence[]> {
+  return await listSentences(lessonId)
 }
 
 export async function createSentence(lessonId: string, payload: ListeningSentence): Promise<ListeningSentence> {

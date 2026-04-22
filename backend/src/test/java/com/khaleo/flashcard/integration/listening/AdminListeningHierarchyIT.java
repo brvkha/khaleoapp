@@ -56,7 +56,7 @@ class AdminListeningHierarchyIT {
     exercise1.setTopic(topic1);
     exercise1.setName("Exercise 1");
     exercise1.setSlug("exercise-1");
-    exercise1.setOrderIndex(0);
+    exercise1.setOrderIndex(1);
     exercise1.setStatus("draft");
     exercise1 = exerciseRepository.save(exercise1);
 
@@ -65,7 +65,7 @@ class AdminListeningHierarchyIT {
     lesson1.setExercise(exercise1);
     lesson1.setName("Lesson 1");
     lesson1.setSlug("lesson-1");
-    lesson1.setOrderIndex(0);
+    lesson1.setOrderIndex(1);
     lesson1.setStatus("draft");
     lesson1 = lessonRepository.save(lesson1);
   }
@@ -86,7 +86,7 @@ class AdminListeningHierarchyIT {
     exercise3.setTopic(topic2);
     exercise3.setName("Exercise 3");
     exercise3.setSlug("exercise-1"); // Same slug as exercise1 but different topic
-    exercise3.setOrderIndex(0);
+    exercise3.setOrderIndex(1);
     exercise3.setStatus("draft");
     Exercise saved = exerciseRepository.save(exercise3);
 
@@ -120,7 +120,7 @@ class AdminListeningHierarchyIT {
     lesson2.setExercise(exercise2);
     lesson2.setName("Lesson 2");
     lesson2.setSlug("lesson-1"); // Same slug as lesson1 but different exercise
-    lesson2.setOrderIndex(0);
+    lesson2.setOrderIndex(1);
     lesson2.setStatus("draft");
     Lesson saved = lessonRepository.save(lesson2);
 
@@ -154,21 +154,22 @@ class AdminListeningHierarchyIT {
   @DisplayName("Sentence reorder maintains order_index transactionally")
   void sentenceReorderTransactionalCorrectness() {
     // Create 5 sentences
-    Sentence s1 = createSentence(lesson1, "Sentence 1", 0);
-    Sentence s2 = createSentence(lesson1, "Sentence 2", 1);
-    Sentence s3 = createSentence(lesson1, "Sentence 3", 2);
-    Sentence s4 = createSentence(lesson1, "Sentence 4", 3);
-    Sentence s5 = createSentence(lesson1, "Sentence 5", 4);
+    Sentence s1 = createSentence(lesson1, "Sentence 1", 1);
+    Sentence s2 = createSentence(lesson1, "Sentence 2", 2);
+    Sentence s3 = createSentence(lesson1, "Sentence 3", 3);
+    Sentence s4 = createSentence(lesson1, "Sentence 4", 4);
+    Sentence s5 = createSentence(lesson1, "Sentence 5", 5);
 
-    assertOrderIndices(List.of(0, 1, 2, 3, 4));
+    assertOrderIndices(List.of(1, 2, 3, 4, 5));
 
     // Simulate reorder: move s5 to position 1
     s5.setOrderIndex(1);
     s2.setOrderIndex(2);
     s3.setOrderIndex(3);
     s4.setOrderIndex(4);
+    s1.setOrderIndex(5);
 
-    sentenceRepository.saveAll(List.of(s5, s2, s3, s4));
+    sentenceRepository.saveAll(List.of(s5, s2, s3, s4, s1));
 
     List<Sentence> reordered =
         sentenceRepository.findAllByLessonIdOrderByOrderIndexAsc(lesson1.getId());
@@ -181,17 +182,17 @@ class AdminListeningHierarchyIT {
   @DisplayName("Sentence reorder preserves all sentences")
   void sentenceReorderPreservesAllRecords() {
     // Create sentences
-    Sentence s1 = createSentence(lesson1, "S1", 0);
-    Sentence s2 = createSentence(lesson1, "S2", 1);
-    Sentence s3 = createSentence(lesson1, "S3", 2);
+    Sentence s1 = createSentence(lesson1, "S1", 1);
+    Sentence s2 = createSentence(lesson1, "S2", 2);
+    Sentence s3 = createSentence(lesson1, "S3", 3);
 
     long countBefore =
         sentenceRepository.findAllByLessonIdOrderByOrderIndexAsc(lesson1.getId()).size();
 
     // Reorder them
-    s3.setOrderIndex(0);
-    s1.setOrderIndex(1);
-    s2.setOrderIndex(2);
+    s3.setOrderIndex(1);
+    s1.setOrderIndex(2);
+    s2.setOrderIndex(3);
     sentenceRepository.saveAll(List.of(s3, s1, s2));
 
     long countAfter =
@@ -204,7 +205,7 @@ class AdminListeningHierarchyIT {
   void validationStartTimeNonNegative() {
     Sentence sentence = new Sentence();
     sentence.setLesson(lesson1);
-    sentence.setOrderIndex(0);
+    sentence.setOrderIndex(1);
     sentence.setTranscript("Test");
     sentence.setStartTime(java.math.BigDecimal.valueOf(-1)); // Invalid
     sentence.setEndTime(java.math.BigDecimal.valueOf(5));
@@ -220,7 +221,7 @@ class AdminListeningHierarchyIT {
   void validationEndTimeGreaterThanStartTime() {
     Sentence sentence = new Sentence();
     sentence.setLesson(lesson1);
-    sentence.setOrderIndex(0);
+    sentence.setOrderIndex(1);
     sentence.setTranscript("Test");
     sentence.setStartTime(java.math.BigDecimal.valueOf(5));
     sentence.setEndTime(java.math.BigDecimal.valueOf(5)); // Invalid: not greater
@@ -244,7 +245,7 @@ class AdminListeningHierarchyIT {
 
     Sentence s1 = new Sentence();
     s1.setLesson(lesson);
-    s1.setOrderIndex(0);
+    s1.setOrderIndex(1);
     s1.setTranscript("First 5 seconds");
     s1.setStartTime(java.math.BigDecimal.valueOf(0));
     s1.setEndTime(java.math.BigDecimal.valueOf(5));
@@ -252,7 +253,7 @@ class AdminListeningHierarchyIT {
 
     Sentence s2 = new Sentence();
     s2.setLesson(lesson);
-    s2.setOrderIndex(1);
+    s2.setOrderIndex(2);
     s2.setTranscript("Next 10 seconds");
     s2.setStartTime(java.math.BigDecimal.valueOf(5));
     s2.setEndTime(java.math.BigDecimal.valueOf(15));
@@ -269,7 +270,7 @@ class AdminListeningHierarchyIT {
   void sentenceSentenceSpecificMedia() {
     Sentence sentence = new Sentence();
     sentence.setLesson(lesson1);
-    sentence.setOrderIndex(0);
+    sentence.setOrderIndex(1);
     sentence.setTranscript("With specific media");
     sentence.setMediaUrl("s3://bucket/sentence-specific.mp3");
     sentence = sentenceRepository.save(sentence);
@@ -293,15 +294,17 @@ class AdminListeningHierarchyIT {
     lesson.setExercise(exercise);
     lesson.setName("Cascading Lesson");
     lesson.setSlug("cascade-lesson");
-    lesson.setOrderIndex(0);
+    lesson.setOrderIndex(1);
     lesson.setStatus("draft");
     lesson = lessonRepository.save(lesson);
+    exercise.getLessons().add(lesson);
 
     Sentence sentence = new Sentence();
     sentence.setLesson(lesson);
-    sentence.setOrderIndex(0);
+    sentence.setOrderIndex(1);
     sentence.setTranscript("Cascading Sentence");
     sentence = sentenceRepository.save(sentence);
+    lesson.getSentences().add(sentence);
 
     long sentenceCountBefore = sentenceRepository.count();
     exerciseRepository.delete(exercise);

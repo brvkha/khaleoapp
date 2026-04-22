@@ -35,8 +35,6 @@ import org.springframework.transaction.annotation.Transactional;
 @DisplayName("Learner Progress Update Integration Tests")
 class LearnerProgressUpdateIT {
 
-  private static final UUID FIXED_TEST_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
-
   @Autowired private LearnerSentenceProgressService learnerSentenceProgressService;
   @Autowired private UserSentenceProgressRepository progressRepository;
   @Autowired private UserRepository userRepository;
@@ -45,12 +43,14 @@ class LearnerProgressUpdateIT {
   @Autowired private LessonRepository lessonRepository;
   @Autowired private SentenceRepository sentenceRepository;
 
+  private User testUser;
   private Sentence sentence;
 
   @BeforeEach
   void setUp() {
-    SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("test", "n/a", "ROLE_USER"));
     ensureFixedUser();
+    SecurityContextHolder.getContext().setAuthentication(
+        new TestingAuthenticationToken(testUser.getUsername(), "n/a", "ROLE_USER"));
 
     Topic topic = new Topic();
     topic.setName("Topic");
@@ -62,7 +62,7 @@ class LearnerProgressUpdateIT {
     exercise.setTopic(topic);
     exercise.setName("Exercise");
     exercise.setSlug("exercise-progress");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("published");
     exercise = exerciseRepository.save(exercise);
 
@@ -70,13 +70,13 @@ class LearnerProgressUpdateIT {
     lesson.setExercise(exercise);
     lesson.setName("Lesson");
     lesson.setSlug("lesson-progress");
-    lesson.setOrderIndex(0);
+    lesson.setOrderIndex(1);
     lesson.setStatus("published");
     lesson = lessonRepository.save(lesson);
 
     sentence = new Sentence();
     sentence.setLesson(lesson);
-    sentence.setOrderIndex(0);
+    sentence.setOrderIndex(1);
     sentence.setTranscript("This is one sentence");
     sentence = sentenceRepository.save(sentence);
   }
@@ -94,7 +94,7 @@ class LearnerProgressUpdateIT {
     assertThat(response.sentenceId()).isEqualTo(sentence.getId());
     assertThat(response.completionSource()).isEqualTo("correct_check");
     assertThat(response.completed()).isTrue();
-    assertThat(progressRepository.findByUserIdAndSentenceId(FIXED_TEST_USER_ID, sentence.getId())).isPresent();
+    assertThat(progressRepository.findByUserIdAndSentenceId(testUser.getId(), sentence.getId())).isPresent();
   }
 
   @Test
@@ -104,22 +104,22 @@ class LearnerProgressUpdateIT {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Invalid action type");
 
-    assertThat(progressRepository.findByUserIdAndSentenceId(FIXED_TEST_USER_ID, sentence.getId())).isEmpty();
+    assertThat(progressRepository.findByUserIdAndSentenceId(testUser.getId(), sentence.getId())).isEmpty();
   }
 
   private void ensureFixedUser() {
-    if (userRepository.findById(FIXED_TEST_USER_ID).isPresent()) {
+    testUser = userRepository.findByUsername("progress-learner").orElse(null);
+    if (testUser != null) {
       return;
     }
 
     User user = new User();
-    user.setId(FIXED_TEST_USER_ID);
     user.setUsername("progress-learner");
     user.setEmail("progress-learner@khaleo.app");
     user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
     user.setRole(UserRole.ROLE_USER);
     user.setIsEmailVerified(true);
-    userRepository.save(user);
+    testUser = userRepository.save(user);
   }
 }
 

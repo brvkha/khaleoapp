@@ -13,6 +13,14 @@ export function RichCardContent({ card, revealed }: RichCardContentProps) {
   const frontContent = useMemo(() => card.frontContent ?? card.frontText, [card.frontContent, card.frontText])
   const backContent = useMemo(() => card.backContent ?? card.backText, [card.backContent, card.backText])
   const term = useMemo(() => card.term ?? frontContent, [frontContent, card.term])
+  const examples = useMemo(
+    () =>
+      ((card.examples ?? []) as Array<string | { text?: string } | null>)
+        .map((example) => (typeof example === 'string' ? example : example?.text ?? ''))
+        .map((example) => example.trim())
+        .filter(Boolean),
+    [card.examples],
+  )
 
   useEffect(() => {
     if (examplesRef.current) {
@@ -45,6 +53,18 @@ export function RichCardContent({ card, revealed }: RichCardContentProps) {
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-600">Back</p>
         <StudyCardImage htmlContent={backContent} />
       </div>
+      {examples.length > 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Examples</p>
+          <div ref={examplesRef} data-testid="rich-card-examples-scroll" className="max-h-40 space-y-2 overflow-y-auto">
+            {examples.map((example) => (
+              <p className="text-sm leading-6 text-slate-700" key={example}>
+                {example}
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {card.phonetic || card.partOfSpeech ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600" data-testid="rich-card-metadata">
           {card.phonetic ? <p>Phonetic: {card.phonetic}</p> : null}

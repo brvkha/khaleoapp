@@ -20,6 +20,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Contract tests for Admin Listening CMS API endpoints.
@@ -29,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
+@WithMockUser(roles = "ADMIN")
 @DisplayName("Admin Listening API Contract Tests")
 class AdminListeningContractTest {
 
@@ -159,7 +162,7 @@ class AdminListeningContractTest {
     exercise.setTopic(testTopic);
     exercise.setName("Test Exercise");
     exercise.setSlug("test-ex");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("draft");
     exerciseRepository.save(exercise);
 
@@ -178,7 +181,7 @@ class AdminListeningContractTest {
     exercise.setTopic(testTopic);
     exercise.setName("Old Name");
     exercise.setSlug("old-slug");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("draft");
     exercise = exerciseRepository.save(exercise);
 
@@ -201,7 +204,7 @@ class AdminListeningContractTest {
     exercise.setTopic(testTopic);
     exercise.setName("Delete Me");
     exercise.setSlug("delete-me-ex");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("draft");
     exercise = exerciseRepository.save(exercise);
 
@@ -219,7 +222,7 @@ class AdminListeningContractTest {
     exercise.setTopic(testTopic);
     exercise.setName("Test Exercise");
     exercise.setSlug("test-ex");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("draft");
     exercise = exerciseRepository.save(exercise);
 
@@ -244,7 +247,7 @@ class AdminListeningContractTest {
     exercise.setTopic(testTopic);
     exercise.setName("Test Exercise");
     exercise.setSlug("test-ex");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("draft");
     exercise = exerciseRepository.save(exercise);
 
@@ -252,7 +255,7 @@ class AdminListeningContractTest {
     lesson.setExercise(exercise);
     lesson.setName("Test Lesson");
     lesson.setSlug("test-lesson");
-    lesson.setOrderIndex(0);
+    lesson.setOrderIndex(1);
     lesson.setStatus("draft");
     lessonRepository.save(lesson);
 
@@ -271,7 +274,7 @@ class AdminListeningContractTest {
     exercise.setTopic(testTopic);
     exercise.setName("Test Exercise");
     exercise.setSlug("test-ex");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("draft");
     exercise = exerciseRepository.save(exercise);
 
@@ -279,7 +282,7 @@ class AdminListeningContractTest {
     lesson.setExercise(exercise);
     lesson.setName("Old Name");
     lesson.setSlug("old-slug");
-    lesson.setOrderIndex(0);
+    lesson.setOrderIndex(1);
     lesson.setStatus("draft");
     lesson = lessonRepository.save(lesson);
 
@@ -302,7 +305,7 @@ class AdminListeningContractTest {
     exercise.setTopic(testTopic);
     exercise.setName("Test Exercise");
     exercise.setSlug("test-ex");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("draft");
     exercise = exerciseRepository.save(exercise);
 
@@ -310,7 +313,7 @@ class AdminListeningContractTest {
     lesson.setExercise(exercise);
     lesson.setName("Delete Me");
     lesson.setSlug("delete-me");
-    lesson.setOrderIndex(0);
+    lesson.setOrderIndex(1);
     lesson.setStatus("draft");
     lesson = lessonRepository.save(lesson);
 
@@ -328,7 +331,7 @@ class AdminListeningContractTest {
     exercise.setTopic(testTopic);
     exercise.setName("Test Exercise");
     exercise.setSlug("test-ex");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("draft");
     exercise = exerciseRepository.save(exercise);
 
@@ -336,7 +339,7 @@ class AdminListeningContractTest {
     lesson.setExercise(exercise);
     lesson.setName("Test Lesson");
     lesson.setSlug("test-lesson");
-    lesson.setOrderIndex(0);
+    lesson.setOrderIndex(1);
     lesson.setStatus("draft");
     lesson = lessonRepository.save(lesson);
 
@@ -361,7 +364,7 @@ class AdminListeningContractTest {
     exercise.setTopic(testTopic);
     exercise.setName("Test Exercise");
     exercise.setSlug("test-ex");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("draft");
     exercise = exerciseRepository.save(exercise);
 
@@ -369,13 +372,13 @@ class AdminListeningContractTest {
     lesson.setExercise(exercise);
     lesson.setName("Test Lesson");
     lesson.setSlug("test-lesson");
-    lesson.setOrderIndex(0);
+    lesson.setOrderIndex(1);
     lesson.setStatus("draft");
     lesson = lessonRepository.save(lesson);
 
     Sentence sentence = new Sentence();
     sentence.setLesson(lesson);
-    sentence.setOrderIndex(0);
+    sentence.setOrderIndex(1);
     sentence.setTranscript("Test sentence");
     sentenceRepository.save(sentence);
 
@@ -394,7 +397,7 @@ class AdminListeningContractTest {
     exercise.setTopic(testTopic);
     exercise.setName("Test Exercise");
     exercise.setSlug("test-ex");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("draft");
     exercise = exerciseRepository.save(exercise);
 
@@ -402,13 +405,13 @@ class AdminListeningContractTest {
     lesson.setExercise(exercise);
     lesson.setName("Test Lesson");
     lesson.setSlug("test-lesson");
-    lesson.setOrderIndex(0);
+    lesson.setOrderIndex(1);
     lesson.setStatus("draft");
     lesson = lessonRepository.save(lesson);
 
     Sentence sentence = new Sentence();
     sentence.setLesson(lesson);
-    sentence.setOrderIndex(0);
+    sentence.setOrderIndex(1);
     sentence.setTranscript("Old text");
     sentence = sentenceRepository.save(sentence);
 
@@ -431,7 +434,7 @@ class AdminListeningContractTest {
     exercise.setTopic(testTopic);
     exercise.setName("Test Exercise");
     exercise.setSlug("test-ex");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("draft");
     exercise = exerciseRepository.save(exercise);
 
@@ -439,13 +442,13 @@ class AdminListeningContractTest {
     lesson.setExercise(exercise);
     lesson.setName("Test Lesson");
     lesson.setSlug("test-lesson");
-    lesson.setOrderIndex(0);
+    lesson.setOrderIndex(1);
     lesson.setStatus("draft");
     lesson = lessonRepository.save(lesson);
 
     Sentence sentence = new Sentence();
     sentence.setLesson(lesson);
-    sentence.setOrderIndex(0);
+    sentence.setOrderIndex(1);
     sentence.setTranscript("Delete me");
     sentence = sentenceRepository.save(sentence);
 
@@ -477,7 +480,7 @@ class AdminListeningContractTest {
     exercise.setTopic(testTopic);
     exercise.setName("Test Exercise");
     exercise.setSlug("test-ex");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("draft");
     exercise = exerciseRepository.save(exercise);
 
@@ -485,7 +488,7 @@ class AdminListeningContractTest {
     lesson.setExercise(exercise);
     lesson.setName("Test Lesson");
     lesson.setSlug("test-lesson");
-    lesson.setOrderIndex(0);
+    lesson.setOrderIndex(1);
     lesson.setStatus("draft");
     lesson = lessonRepository.save(lesson);
 

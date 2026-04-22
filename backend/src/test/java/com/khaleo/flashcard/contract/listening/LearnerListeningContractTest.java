@@ -30,15 +30,15 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.test.context.support.WithMockUser;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
+@WithMockUser(username = "listening-learner", roles = "USER")
 @DisplayName("Learner Listening API Contract Tests")
 class LearnerListeningContractTest {
-
-  private static final UUID FIXED_TEST_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
@@ -48,6 +48,7 @@ class LearnerListeningContractTest {
   @Autowired private SentenceRepository sentenceRepository;
   @Autowired private UserRepository userRepository;
 
+  private User testUser;
   private Lesson lesson;
   private Sentence sentence;
 
@@ -65,7 +66,7 @@ class LearnerListeningContractTest {
     exercise.setTopic(topic);
     exercise.setName("Exercise A");
     exercise.setSlug("exercise-a");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("published");
     exercise = exerciseRepository.save(exercise);
 
@@ -73,13 +74,13 @@ class LearnerListeningContractTest {
     lesson.setExercise(exercise);
     lesson.setName("Lesson A");
     lesson.setSlug("lesson-a");
-    lesson.setOrderIndex(0);
+    lesson.setOrderIndex(1);
     lesson.setStatus("published");
     lesson = lessonRepository.save(lesson);
 
     sentence = new Sentence();
     sentence.setLesson(lesson);
-    sentence.setOrderIndex(0);
+    sentence.setOrderIndex(1);
     sentence.setTranscript("The train leaves at seven");
     sentence.setTranslation("Tàu rời đi lúc bảy giờ");
     sentence = sentenceRepository.save(sentence);
@@ -127,18 +128,18 @@ class LearnerListeningContractTest {
   }
 
   private void ensureFixedUser() {
-    if (userRepository.findById(FIXED_TEST_USER_ID).isPresent()) {
+    testUser = userRepository.findByUsername("listening-learner").orElse(null);
+    if (testUser != null) {
       return;
     }
 
     User user = new User();
-    user.setId(FIXED_TEST_USER_ID);
     user.setUsername("listening-learner");
     user.setEmail("listening-learner@khaleo.app");
     user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
     user.setRole(UserRole.ROLE_USER);
     user.setIsEmailVerified(true);
-    userRepository.save(user);
+    testUser = userRepository.save(user);
   }
 }
 

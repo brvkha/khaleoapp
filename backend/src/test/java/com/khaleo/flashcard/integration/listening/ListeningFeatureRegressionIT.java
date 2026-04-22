@@ -17,7 +17,6 @@ import com.khaleo.flashcard.repository.TopicRepository;
 import com.khaleo.flashcard.repository.UserRepository;
 import com.khaleo.flashcard.service.listening.LearnerListeningWorkspaceService;
 import com.khaleo.flashcard.service.listening.LearnerSentenceProgressService;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,8 +34,6 @@ import org.springframework.transaction.annotation.Transactional;
 @DisplayName("Listening Feature Regression")
 class ListeningFeatureRegressionIT {
 
-  private static final UUID FIXED_TEST_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
-
   @Autowired private TopicRepository topicRepository;
   @Autowired private ExerciseRepository exerciseRepository;
   @Autowired private LessonRepository lessonRepository;
@@ -45,13 +42,15 @@ class ListeningFeatureRegressionIT {
   @Autowired private LearnerListeningWorkspaceService learnerListeningWorkspaceService;
   @Autowired private LearnerSentenceProgressService learnerSentenceProgressService;
 
+  private User testUser;
   private Lesson lesson;
   private Sentence sentence;
 
   @BeforeEach
   void setUp() {
-    SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("test", "n/a", "ROLE_USER"));
     ensureFixedUser();
+    SecurityContextHolder.getContext().setAuthentication(
+        new TestingAuthenticationToken(testUser.getUsername(), "n/a", "ROLE_USER"));
 
     Topic topic = new Topic();
     topic.setName("Regression Topic");
@@ -63,7 +62,7 @@ class ListeningFeatureRegressionIT {
     exercise.setTopic(topic);
     exercise.setName("Regression Exercise");
     exercise.setSlug("regression-exercise");
-    exercise.setOrderIndex(0);
+    exercise.setOrderIndex(1);
     exercise.setStatus("published");
     exercise = exerciseRepository.save(exercise);
 
@@ -71,13 +70,13 @@ class ListeningFeatureRegressionIT {
     lesson.setExercise(exercise);
     lesson.setName("Regression Lesson");
     lesson.setSlug("regression-lesson");
-    lesson.setOrderIndex(0);
+    lesson.setOrderIndex(1);
     lesson.setStatus("published");
     lesson = lessonRepository.save(lesson);
 
     sentence = new Sentence();
     sentence.setLesson(lesson);
-    sentence.setOrderIndex(0);
+    sentence.setOrderIndex(1);
     sentence.setTranscript("Regression sentence");
     sentence = sentenceRepository.save(sentence);
   }
@@ -104,18 +103,18 @@ class ListeningFeatureRegressionIT {
   }
 
   private void ensureFixedUser() {
-    if (userRepository.findById(FIXED_TEST_USER_ID).isPresent()) {
+    testUser = userRepository.findByUsername("regression-learner").orElse(null);
+    if (testUser != null) {
       return;
     }
 
     User user = new User();
-    user.setId(FIXED_TEST_USER_ID);
     user.setUsername("regression-learner");
     user.setEmail("regression-learner@khaleo.app");
     user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
     user.setRole(UserRole.ROLE_USER);
     user.setIsEmailVerified(true);
-    userRepository.save(user);
+    testUser = userRepository.save(user);
   }
 }
 

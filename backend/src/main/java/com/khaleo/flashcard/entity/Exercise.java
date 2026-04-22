@@ -1,6 +1,7 @@
 package com.khaleo.flashcard.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -55,7 +56,7 @@ public class Exercise extends BaseAuditableEntity {
     private String status = "draft";
 
     @Builder.Default
-    @OneToMany(mappedBy = "exercise")
+    @OneToMany(mappedBy = "exercise", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Lesson> lessons = new ArrayList<>();
 }
 

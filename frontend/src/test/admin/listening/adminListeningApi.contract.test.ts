@@ -101,7 +101,12 @@ describe('Admin Listening API Contract Tests', () => {
 
       expect(response.id).toBe(topicId);
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining(`/api/v1/admin/listening/topics/${topicId}`)
+        expect.stringContaining(`/api/v1/admin/listening/topics/${topicId}`),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+          }),
+        })
       );
     });
 
@@ -136,7 +141,7 @@ describe('Admin Listening API Contract Tests', () => {
     it('should delete topic', async () => {
       const topicId = 'topic-123';
       const mockFetch = vi.fn(() =>
-        Promise.resolve(new Response('', { status: 204 }))
+        Promise.resolve(new Response(null, { status: 204 }))
       );
       global.fetch = mockFetch;
 
@@ -202,7 +207,12 @@ describe('Admin Listening API Contract Tests', () => {
 
       expect(response).toHaveLength(2);
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining(`/api/v1/admin/listening/topics/${topicId}/exercises`)
+        expect.stringContaining(`/api/v1/admin/listening/topics/${topicId}/exercises`),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+          }),
+        })
       );
     });
 
@@ -231,7 +241,7 @@ describe('Admin Listening API Contract Tests', () => {
     it('should delete exercise', async () => {
       const exerciseId = 'ex-123';
       const mockFetch = vi.fn(() =>
-        Promise.resolve(new Response('', { status: 204 }))
+        Promise.resolve(new Response(null, { status: 204 }))
       );
       global.fetch = mockFetch;
 
@@ -320,7 +330,7 @@ describe('Admin Listening API Contract Tests', () => {
     it('should delete lesson', async () => {
       const lessonId = 'lesson-123';
       const mockFetch = vi.fn(() =>
-        Promise.resolve(new Response('', { status: 204 }))
+        Promise.resolve(new Response(null, { status: 204 }))
       );
       global.fetch = mockFetch;
 
@@ -422,7 +432,7 @@ describe('Admin Listening API Contract Tests', () => {
     it('should delete sentence', async () => {
       const sentenceId = 'sent-123';
       const mockFetch = vi.fn(() =>
-        Promise.resolve(new Response('', { status: 204 }))
+        Promise.resolve(new Response(null, { status: 204 }))
       );
       global.fetch = mockFetch;
 
@@ -454,9 +464,8 @@ describe('Admin Listening API Contract Tests', () => {
       );
       global.fetch = mockFetch;
 
-      const response = await adminListeningApi.reorderSentences(lessonId, sentenceIds);
+      await adminListeningApi.reorderSentences(lessonId, { sentenceIds });
 
-      expect(response.sentenceIds).toEqual(sentenceIds);
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining(
           `/api/v1/admin/listening/lessons/${lessonId}/sentences/reorder`
@@ -483,7 +492,7 @@ describe('Admin Listening API Contract Tests', () => {
         failedCount: 1,
         errors: [
           {
-            rowIndex: 2,
+            row: 2,
             message: 'Transcript is required',
           },
         ],
@@ -501,14 +510,14 @@ describe('Admin Listening API Contract Tests', () => {
       expect(response.successCount).toBe(2);
       expect(response.failedCount).toBe(1);
       expect(response.errors).toHaveLength(1);
-      expect(response.errors[0].rowIndex).toBe(2);
+      expect(response.errors[0].row).toBe(2);
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining(
           `/api/v1/admin/listening/lessons/${lessonId}/sentences/import-json`
         ),
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify(importRows),
+          body: JSON.stringify({ rows: importRows }),
         })
       );
     });
@@ -556,7 +565,7 @@ describe('Admin Listening API Contract Tests', () => {
     });
 
     it('should handle 400 bad request', async () => {
-      const payload = { name: '', slug: '' };
+      const payload: Parameters<typeof adminListeningApi.createTopic>[0] = { name: '', slug: '' };
       const mockFetch = vi.fn(() =>
         Promise.resolve(
           new Response(
@@ -571,7 +580,7 @@ describe('Admin Listening API Contract Tests', () => {
       global.fetch = mockFetch;
 
       await expect(
-        adminListeningApi.createTopic(payload as any)
+        adminListeningApi.createTopic(payload)
       ).rejects.toThrow();
     });
 

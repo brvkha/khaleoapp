@@ -1,4 +1,4 @@
-import React from 'react'
+import * as React from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -31,7 +31,10 @@ const sentences = [
 
 describe('transcript playback behavior', () => {
   beforeEach(() => {
-    vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    })
   })
 
   it('auto-scrolls to current sentence when enabled', () => {
