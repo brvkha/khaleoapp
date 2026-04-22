@@ -17,7 +17,7 @@ Media delivery uses short-lived S3 presigned URLs while frontend plays fetched b
 **Testing**: JUnit 5 + Spring Boot/Testcontainers (backend), Vitest + React Testing Library (frontend), Playwright e2e (frontend)  
 **Target Platform**: Web app (browser frontend + Spring Boot backend)
 **Project Type**: Monorepo web application (`backend/` + `frontend/`)  
-**Performance Goals**: Responsive playback controls and dictation feedback on sentence transitions; reorder/import operations complete within normal admin interaction windows for lesson-scale datasets  
+**Performance Goals**: p95 learner API response (lesson detail, progress read/write, media URL exchange) <= 300ms under normal load; p95 UI reaction (playback controls, sentence transition feedback) < 150ms after user input; admin sentence reorder persistence < 2s p95 for lessons up to 300 sentences; admin JSON import (up to 1,000 sentences / 5 MB payload) completes with result summary < 10s p95  
 **Constraints**: Strict non-fuzzy dictation match, completion only via `correct_check|skip`, sentence timestamp validation limited to `start_time >= 0` and `end_time > start_time`, dictionary key server-side only, media via presigned URL exchange + blob playback  
 **Scale/Scope**: New listening schema/entities/APIs plus learner/admin UI surfaces for one full content hierarchy and lesson playback workflow in phase 1
 
@@ -25,14 +25,14 @@ Media delivery uses short-lived S3 presigned URLs while frontend plays fetched b
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- Constitution file (`.specify/memory/constitution.md`) is currently a placeholder template with no ratified enforceable principles.
-- Interim project gates applied for this feature:
-  - Security gate: dictionary API key must remain backend-only; media access only via short-lived exchange; learner fallback must not break session.
-  - Contract gate: deterministic dictation algorithm and completion semantics (`correct_check|skip` only) must remain stable.
-  - Data integrity gate: scoped slug uniqueness and sentence ordering consistency between admin and learner views.
-  - Quality gate: automated coverage for normalization, reorder/import contracts, progress upsert behavior, and fallback flows.
+- Constitution file is ratified at `.specify/memory/constitution.md` (v1.0.0).
+- Applicable mandatory gates for this feature:
+  - Contract integrity: backend/frontend API and DTO behavior must remain synchronized and covered by contract tests.
+  - Security: dictionary provider key remains backend-only; media is issued via time-limited pre-signed URL; failure fallback does not block learner flow.
+  - Test quality: unit + integration/contract coverage for normalization, reorder/import, progress upsert semantics, and dictionary fallback.
+  - Performance evidence: tasks must include explicit verification against the measurable p95 targets in this plan.
 - **Gate status before Phase 0**: PASS.
-- **Gate status after Phase 1 design**: PASS (research/data-model/contracts/quickstart align with gates).
+- **Gate status after Phase 1 design**: PASS (research/data-model/contracts/quickstart/tasks align with constitution gates).
 
 ## Phase 0 Research Output
 
@@ -78,19 +78,21 @@ backend/
       └── unit/listening/
 
 frontend/
-└── src/
-   ├── features/listening/
-   │  ├── components/
-   │  ├── hooks/
-   │  ├── services/
-   │  ├── utils/
-   │  └── ListeningPage.tsx
-   ├── features/admin/listening/
-   ├── services/
-   ├── store/
-   └── test/
-      ├── listening/
-      └── admin/
+├── src/
+│  ├── features/listening/
+│  │  ├── components/
+│  │  ├── hooks/
+│  │  ├── services/
+│  │  ├── utils/
+│  │  └── ListeningPage.tsx
+│  ├── features/admin/listening/
+│  ├── services/
+│  ├── store/
+│  └── test/
+│     ├── listening/
+│     └── admin/
+└── tests/
+   └── e2e/
 ```
 
 **Structure Decision**: Keep the existing monorepo split and add listening-specific backend/frontend modules without introducing new top-level packages.

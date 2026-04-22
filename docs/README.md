@@ -33,6 +33,12 @@ Tai lieu nay chot pham vi kien truc va quy trinh trien khai cho KhaLeo theo huon
 - Backend: Spring Boot + FSRS v6 (w0..w18), desired_retention=0.9.
 - CI/CD: GitHub Actions, `develop` → Staging, `main` → Production.
 
+## Constitution compliance (bat buoc)
+
+- Tu 2026-04-22, moi ke hoach/spec/task phai tuan thu `.specify/memory/constitution.md` v1.0.0.
+- Gate merge/release toi thieu: lint + test + build xanh, khong vo gate bao mat media/dictionary,
+  va co bang chung budget hieu nang khi tinh nang bi anh huong.
+
 ## Out of scope giai doan nay
 
 - Microservices, Kubernetes, ALB autoscaling phuc tap.

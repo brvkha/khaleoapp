@@ -102,28 +102,26 @@ As a learner, I can use full transcript, inline dictionary lookup, and personal 
 - **FR-011 (Translation Fallback Rendering)**: Learner UI MUST hide translation section or show fallback text when sentence translation is null.
 - **FR-012 (Hybrid Media Strategy)**: System MUST support sentence media through either sentence-specific media reference or shared lesson media with sentence timestamps.
 - **FR-013 (Shared Media Timestamp Validation)**: For shared lesson media mode, system MUST validate `start_time >= 0` and `end_time > start_time`.
-- **FR-014 (No Duration Validation in Phase 1)**: System MUST NOT validate timestamps against actual media duration in phase 1.
-- **FR-015 (Pre-Signed Media Access)**: System MUST deliver learner media through short-lived pre-signed URL exchange.
+- **FR-014 (No Duration Validation in Phase 1)**: System MUST NOT validate timestamps against actual media duration in phase 1, and phase 1 MUST NOT issue any backend or frontend media-duration validation call as part of save/import/playback flows.
+- **FR-015 (Pre-Signed Media Access)**: System MUST deliver learner media through pre-signed URL exchange with a phase 1 TTL between 60 and 300 seconds (inclusive).
 - **FR-016 (Frontend Playback Source Rule)**: Learner client MUST fetch media bytes (blob/arraybuffer) and use object URL playback source.
-- **FR-017 (Dictation Answer Rule)**: System MUST mark Check action as correct only when learner answer exactly equals normalized target sentence or normalized alias mapping output.
-- **FR-017b (UI Error Masking Rule)**: When Check action is evaluated, the UI MUST perform a left-to-right word match. It MUST display correctly typed words, stop at the first incorrect word, and mask the incorrect word along with all remaining un-typed words using asterisks (***).
-- **FR-018 (No Fuzzy Matching)**: System MUST NOT apply fuzzy, phonetic, edit-distance, or partial-match scoring in phase 1 correctness.
-- **FR-019 (Normalization Standard)**: System MUST normalize learner answer and target text before comparison using the approved normalization pipeline and punctuation stripping regex.
+- **FR-017 (Dictation Answer Rule)**: System MUST evaluate Check correctness using exact full-string equality only after applying the normalization pipeline in **Dictation Normalization & Matching Rules**.
+- **FR-018 (No Fuzzy Matching)**: System MUST NOT apply fuzzy, phonetic, edit-distance, token-level, or partial-match scoring in phase 1.
+- **FR-019 (Normalization Source of Truth)**: Any dictation correctness logic change MUST update **Dictation Normalization & Matching Rules** first, and implementations/tests MUST follow that section.
 - **FR-020 (Completion Tracking Rule)**: System MUST mark sentence completion only on (a) correct Check or (b) explicit Skip action.
-- **FR-021 (No Attempt History in Phase 1)**: System MUST NOT persist per-try attempt history in phase 1.
+- **FR-021 (No Attempt History in Phase 1)**: System MUST NOT persist per-try attempt history in phase 1; incorrect Check actions MUST create no attempt-history record, event log entry, or additional progress row, and MUST leave persisted completion state unchanged.
 - **FR-022 (User Sentence Progress Persistence)**: System MUST persist completion state in `user_sentence_progress` keyed by user and sentence.
 - **FR-023 (Learner Workspace Components)**: Learner workspace MUST include dictation input/check flow, full transcript view, audio player controls, personal settings, and progress indicators.
-- **FR-023b (Transcript Auto-Scroll)**: When playing media in the Full Transcript tab, the UI MUST automatically scroll to keep the currently playing sentence pinned around the 3rd line of the visible viewport.
 - **FR-024 (Auto Play Setting)**: System MUST provide a user-selectable `Auto Play on Next` setting and apply it when advancing to next sentence.
 - **FR-025 (Keyboard Shortcuts)**: Learner workspace MUST support default shortcuts: Enter=Check, Esc=Skip, Ctrl=Replay, backtick=Play/Pause.
-- **FR-026 (Auto Replay Controls)**: Settings MUST support configurable auto replay count per sentence (None, 1, 2, Infinite) and replay interval options (for example 0.5s, 1.0s, 1.5s).
-- **FR-027 (Full Transcript Playback Controls)**: Full Transcript tab MUST support click-to-play by sentence and optional loop/repeat for full lesson playback.
+- **FR-026 (Auto Replay Controls)**: Settings MUST support configurable auto replay count per sentence (None, 1, 2, Infinite) and replay interval enum values fixed for phase 1 as (0.5s, 1.0s, 1.5s).
+- **FR-027 (Full Transcript Playback Controls)**: Full Transcript tab MUST support click-to-play by sentence, optional auto-scroll that keeps active sentence near the third visible line, and optional loop/repeat for full lesson playback.
 - **FR-028 (Clickable Word Lookup)**: In answer-visible and transcript contexts, English words MUST be clickable to request dictionary lookup.
 - **FR-029 (Dictionary Proxy)**: System MUST provide dictionary lookup via backend proxy to Cambridge provider with provider key hidden server-side.
-- **FR-030 (Dictionary Fallback UX)**: If dictionary provider fails, learner UI MUST show graceful fallback messaging and keep dictation flow available.
+- **FR-030 (Dictionary Fallback UX)**: If dictionary provider fails, learner UI MUST show fallback messaging in-context and keep dictation flow available without forced navigation/reload; learner can continue Check/Skip/Replay actions immediately.
 - **FR-031 (Learner Retrieval API)**: System MUST provide learner-facing retrieval APIs for topic/exercise/lesson/sentence structures and current learner progress.
 - **FR-032 (Progress Update API)**: System MUST provide endpoint(s) to update completion state for correct-check and skip actions.
-- **FR-033 (Pre-Signed URL Exchange API)**: System MUST provide endpoint(s) for issuing short-lived media access URLs for lesson or sentence media.
+- **FR-033 (Pre-Signed URL Exchange API)**: System MUST provide endpoint(s) for issuing media access URLs for lesson or sentence media with TTL constrained to 60-300 seconds in phase 1.
 
 ### Data Model Requirements
 
@@ -174,7 +172,7 @@ As a learner, I can use full transcript, inline dictionary lookup, and personal 
 
 **Contract expectations**:
 - Workspace payload MUST include lesson metadata, ordered sentences, optional translation values, aliases mapping, learner progress summary, and settings defaults.
-- Media access endpoint MUST return short-lived pre-signed URL metadata and expiry.
+- Media access endpoint MUST return pre-signed URL metadata and expiry (TTL 60-300 seconds in phase 1).
 
 #### 3) Progress Update API
 
@@ -195,28 +193,22 @@ As a learner, I can use full transcript, inline dictionary lookup, and personal 
 
 ### Dictation Normalization & Matching Rules
 
-The system utilizes two distinct pipelines to prevent normalization from breaking visual word boundaries:
+For both learner input and expected sentence (including aliases), apply this exact sequence before equality comparison:
 
-**1. Correctness Evaluation Pipeline (Strict Match):**
-Applied to both learner input and expected sentence (including aliases) before equality check:
-1. Unicode normalization to NFKC.
+1. Apply alias canonicalization map first when configured for the sentence/exercise (for example `"i've" -> "i have"`, `"don't" -> "do not"`).
 2. Lowercase conversion.
-3. Punctuation/symbol stripping using regex: `/[\p{P}\p{S}]/gu`.
-4. Collapse internal whitespace to single spaces using `/\s+/g`.
-5. Trim leading/trailing spaces.
-6. Compare full-string equality. No fuzzy logic or partial scoring is allowed.
+3. Strip punctuation/symbols/whitespace using regex: `/[‚,.、。！：；）（，？„“‘’”?;:'"\]\[}{!&()\-—+=\s…]/g`.
+4. Compare full-string equality only.
 
-**2. UI Visual Masking Pipeline (Pre-normalized Tokenization):**
-Applied strictly for rendering the `***` mask in the UI (FR-017b):
-1. Tokenize the *original, un-normalized* transcript and learner input by spaces (preserving punctuation attached to words).
-2. Perform a left-to-right token comparison (case-insensitive, ignoring punctuation for the match logic).
-3. Display correctly matched tokens as typed.
-4. Stop at the first mismatched token. Mask that token and all subsequent tokens with asterisks (`***`).
+Alias handling rules:
+- Sentence may define zero or more alias variants.
+- Each alias is normalized by the same pipeline.
+- Answer is correct when normalized answer equals normalized canonical sentence OR any normalized alias.
+- No fuzzy logic, typo tolerance, or token-level partial scoring is allowed.
 
 ### Out of Scope (Phase 1)
 
 - Per-attempt history, streak history, or answer-by-answer analytics storage.
-- Fuzzy matching, phonetic matching, or AI-assisted correction.
 - Timestamp validation against actual media duration.
 - Additional dictionary providers beyond Cambridge.
 - Adaptive difficulty or recommendation engine.
@@ -235,7 +227,7 @@ Applied strictly for rendering the `***` mask in the UI (FR-017b):
 ### Measurable Outcomes
 
 - **SC-001**: 100% of accepted listening content in phase 1 can be authored and maintained through Admin CMS hierarchy (topic/exercise/lesson/sentence).
-- **SC-002**: At least 95% of learners in UAT can complete a full lesson flow (play, answer/check or skip, progress save) without facilitator intervention.
+- **SC-002**: At least 95% of learners in post-build UAT can complete a full lesson flow (play, answer/check or skip, progress save) without facilitator intervention; this is a UAT outcome metric and not a blocking automated test pass criterion.
 - **SC-003**: Dictation correctness decisions are deterministic, with 0% fuzzy/partial acceptance in acceptance test suite.
 - **SC-004**: 100% of completion records are created only by correct Check or Skip actions.
 - **SC-005**: In dictionary provider outage simulations, learner sessions remain functional with fallback UX and no forced session termination.

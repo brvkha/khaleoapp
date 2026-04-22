@@ -85,6 +85,14 @@ app:
       max-example-length: ${RICH_CARD_MAX_EXAMPLE_LENGTH:300}
       max-payload-bytes: ${RICH_CARD_MAX_PAYLOAD_BYTES:65536}
       bulk-max-cards: ${RICH_CARD_BULK_MAX_CARDS:500}
+  listening:
+    enabled: ${LISTENING_ENABLED:true}
+    media:
+      presigned-url-ttl-seconds: ${LISTENING_MEDIA_PRESIGNED_URL_TTL_SECONDS:300}
+    dictionary:
+      provider: ${LISTENING_DICTIONARY_PROVIDER:cambridge}
+      base-url: ${LISTENING_DICTIONARY_BASE_URL:https://dictionary.cambridge.org}
+      cache-ttl-seconds: ${LISTENING_DICTIONARY_CACHE_TTL_SECONDS:86400}
 
 ---
 spring:

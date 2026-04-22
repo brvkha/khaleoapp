@@ -65,6 +65,12 @@
 
 [Add more user stories as needed, each with an assigned priority]
 
+### Required Test Evidence
+
+- Define unit tests for affected business logic.
+- Define integration or contract tests for any backend/frontend boundary changes.
+- Define regression tests for auth, media, dictionary, or listening flows when impacted.
+
 ### Edge Cases
 
 <!--
@@ -95,6 +101,14 @@
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
+### Constitution Alignment *(mandatory)*
+
+- **SEC-001**: Document auth/authorization impact and least-privilege changes.
+- **SEC-002**: If media access is involved, specify signed URL policy and private path protections.
+- **SEC-003**: If dictionary integration is involved, specify host allowlist, timeout, and sanitization rules.
+- **QUAL-001**: Identify required CI gates (lint, tests, build) that MUST pass for merge.
+- **QUAL-002**: Identify contract-versioning impact when backend/frontend payloads change.
+
 ### Key Entities *(include if feature involves data)*
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
@@ -113,6 +127,12 @@
 - **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+
+### Performance Budgets *(mandatory when user-facing flow changes)*
+
+- **PB-001**: Backend p95 latency target for affected APIs (default: <=300ms interactive, <=500ms auth/media token issuance unless justified).
+- **PB-002**: Frontend initial route render target (default: <=2.5s on standard broadband profile unless justified).
+- **PB-003**: Bundle size delta target (default: <=+150KB gzipped JS per feature unless justified).
 
 ## Assumptions
 

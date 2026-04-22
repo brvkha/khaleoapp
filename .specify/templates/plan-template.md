@@ -31,7 +31,16 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- **Contract Integrity**: Confirm backend/frontend contract changes and drift controls (DTO/API
+  versioning + contract test plan).
+- **Security**: Identify auth/authorization impact; media access control (signed URL/private path);
+  dictionary allowlist/timeout/input sanitization impact.
+- **Testing**: Define required unit + integration/contract tests and CI pass criteria.
+- **Performance**: Define measurable budgets (backend latency, frontend render, bundle delta) and
+  measurement approach.
+- **Operability**: Define logs/health/migration checks required for safe release.
+
+If any gate fails, document remediation in **Complexity Tracking** before continuing.
 
 ## Project Structure
 

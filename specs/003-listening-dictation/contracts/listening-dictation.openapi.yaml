@@ -111,8 +111,67 @@ paths:
             schema:
               $ref: '#/components/schemas/ReorderSentencesRequest'
       responses:
-        '200':
+        '204':
           description: Reorder persisted
+
+  /listening/topics:
+    get:
+      summary: Get published listening topics for learner catalogue
+      tags: [Listening]
+      responses:
+        '200':
+          description: Topic list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Topic'
+
+  /listening/topics/{topicSlug}/exercises:
+    get:
+      summary: Get exercises by topic slug
+      tags: [Listening]
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Exercise list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Exercise'
+
+  /listening/topics/{topicSlug}/exercises/{exerciseSlug}/lessons:
+    get:
+      summary: Get lessons by topic/exercise slugs
+      tags: [Listening]
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: exerciseSlug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lesson list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Lesson'
 
   /listening/lessons/{lessonId}/workspace:
     get:
@@ -142,6 +201,43 @@ paths:
       responses:
         '200':
           description: Progress updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressUpdateResponse'
+        '400':
+          description: Invalid action or payload
+    get:
+      summary: Read sentence progress for current learner
+      tags: [Listening]
+      parameters:
+        - $ref: '#/components/parameters/sentenceId'
+      responses:
+        '200':
+          description: Sentence progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressQueryResponse'
+  /listening/sentences/{sentenceId}/complete:
+    post:
+      summary: Legacy alias for sentence completion update
+      tags: [Listening]
+      parameters:
+        - $ref: '#/components/parameters/sentenceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgressUpdateRequest'
+      responses:
+        '200':
+          description: Progress updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressUpdateResponse'
         '400':
           description: Invalid action or payload
   /listening/media/access:
@@ -405,15 +501,27 @@ components:
 
     LessonWorkspaceResponse:
       type: object
-      required: [lesson, sentences, progress]
+      required: [lessonId, name, slug, sentences, progressPercent, completedCount, totalCount]
       properties:
-        lesson:
-          $ref: '#/components/schemas/Lesson'
+        lessonId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        mediaUrl:
+          type: string
+          nullable: true
+        mediaType:
+          type: string
+          nullable: true
+          enum: [audio, video]
         sentences:
           type: array
           items:
             type: object
-            required: [id, orderIndex, transcript]
+            required: [id, orderIndex, transcript, isCompleted]
             properties:
               id:
                 type: string
@@ -425,10 +533,9 @@ components:
               translation:
                 type: string
                 nullable: true
-              aliases:
-                type: object
-                additionalProperties:
-                  type: string
+              aliasesJson:
+                type: string
+                nullable: true
               mediaUrl:
                 type: string
                 nullable: true
@@ -438,39 +545,74 @@ components:
               endTime:
                 type: number
                 nullable: true
-        progress:
-          type: object
-          required: [completedCount, totalCount, percent]
-          properties:
-            completedCount:
-              type: integer
-              minimum: 0
-            totalCount:
-              type: integer
-              minimum: 0
-            percent:
-              type: number
-              format: float
+              isCompleted:
+                type: boolean
+        progressPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        completedCount:
+          type: integer
+          minimum: 0
+        totalCount:
+          type: integer
+          minimum: 0
 
     ProgressUpdateRequest:
       type: object
-      required: [action]
+      required: [actionType]
       properties:
-        action:
+        actionType:
           type: string
           enum: [correct_check, skip]
       additionalProperties: false
 
-    MediaAccessRequest:
+    ProgressUpdateResponse:
       type: object
-      required: [resourceType, resourceId]
+      required:
+        [progressId, sentenceId, completed, completionSource, lessonProgressPercent, lessonCompletedCount, lessonTotalCount]
       properties:
-        resourceType:
-          type: string
-          enum: [lesson, sentence]
-        resourceId:
+        progressId:
           type: string
           format: uuid
+        sentenceId:
+          type: string
+          format: uuid
+        completed:
+          type: boolean
+        completionSource:
+          type: string
+          enum: [correct_check, skip]
+        lessonProgressPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        lessonCompletedCount:
+          type: integer
+          minimum: 0
+        lessonTotalCount:
+          type: integer
+          minimum: 0
+
+    ProgressQueryResponse:
+      type: object
+      required: [sentenceId, completed]
+      properties:
+        sentenceId:
+          type: string
+          format: uuid
+        completed:
+          type: boolean
+        completionSource:
+          type: string
+          nullable: true
+
+    MediaAccessRequest:
+      type: object
+      required: [mediaUrl]
+      properties:
+        mediaUrl:
+          type: string
       additionalProperties: false
 
     MediaAccessResponse:

@@ -72,3 +72,32 @@ npm test
 npm run test:e2e:list
 ```
 
+## 5) Troubleshooting notes (phase 3)
+- Backend tests require an active MySQL instance reachable by the `test` profile.
+- If Flyway fails with `Communications link failure`, start local DB first:
+
+```powershell
+Set-Location C:\Workspace\FPT\khaleoapp\backend
+.\scripts\reset-local-database.ps1
+```
+
+- If listening media playback fails in learner UI, verify:
+  - `LISTENING_MEDIA_PRESIGNED_URL_TTL_SECONDS` is non-zero.
+  - Media object key/url stored in lesson/sentence is valid.
+- Dictionary fallback is expected when provider is unavailable; learner flow should continue.
+
+## 6) Verification notes (phase 3)
+- US2 frontend unit/component tests:
+
+```powershell
+Set-Location C:\Workspace\FPT\khaleoapp\frontend
+npm test -- src/test/listening/dictationEvaluator.test.ts src/test/listening/listeningDictationFlow.test.tsx
+```
+
+- Listening e2e smoke (currently scaffolded + skipped until stable seeded auth fixture):
+
+```powershell
+Set-Location C:\Workspace\FPT\khaleoapp\frontend
+npm run test:e2e -- --grep "listening"
+```
+

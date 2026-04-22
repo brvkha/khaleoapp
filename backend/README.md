@@ -54,3 +54,24 @@ Seed data includes multiple subject decks and one large English deck with 1500 c
 mvn test
 mvn -DskipTests package
 ```
+
+## Listening Module Notes
+
+### Core API areas
+- Learner catalogue/workspace/progress: `/api/v1/listening/**`
+- Learner support: `/api/v1/listening/media/access`, `/api/v1/listening/dictionary`
+- Admin CMS for listening hierarchy: `/api/v1/admin/listening/**`
+
+### Listening environment variables
+- `LISTENING_ENABLED` (default `true`)
+- `LISTENING_MEDIA_PRESIGNED_URL_TTL_SECONDS` (default `300`)
+- `LISTENING_DICTIONARY_PROVIDER` (default `cambridge`)
+- `LISTENING_DICTIONARY_BASE_URL` (default `https://dictionary.cambridge.org`)
+- `LISTENING_DICTIONARY_CACHE_TTL_SECONDS` (default `86400`)
+
+### Listening test commands
+```powershell
+Set-Location C:\Workspace\FPT\khaleoapp\backend
+.\mvnw.cmd "-Dtest=LearnerListeningContractTest,LearnerProgressUpdateIT,ListeningFeatureRegressionIT" test
+```
+

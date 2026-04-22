@@ -7,6 +7,8 @@ This frontend delivers:
 - Auth bootstrap and protected route guards.
 - Deck/card CRUD, search, media upload validation, and study flow.
 - Admin dashboard and moderation routes.
+- Listening learner workspace (dictation + transcript + settings + dictionary popover).
+- Listening admin CMS routing via shared listening page entry.
 
 ## Environment Contract
 
@@ -40,6 +42,24 @@ Notes:
 - Playwright config is in `playwright.config.ts`.
 - Smoke specs are in `tests/e2e/smoke.spec.ts`.
 - Feature 008 flow spec is in `tests/e2e/public-discovery-private-study.e2e.ts`.
+
+## Listening Usage
+
+- Route: `/listening`
+- Learner flow:
+  - Select topic -> exercise -> lesson
+  - Dictation tab supports `Ctrl+Enter` (check) and `Esc` (skip)
+  - Transcript tab supports click-to-play and clickable word dictionary lookup
+  - Settings modal persists listening preferences in localStorage
+- Admin users entering `/listening` are routed to listening CMS.
+
+### Listening test commands
+
+```powershell
+Set-Location C:\Workspace\FPT\khaleoapp\frontend
+npm test -- src/test/listening/dictationEvaluator.test.ts src/test/listening/listeningDictationFlow.test.tsx
+npm run test:e2e -- --grep "listening"
+```
 
 ## Discovery Workspace Session Flow
 

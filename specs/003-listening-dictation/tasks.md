@@ -11,11 +11,11 @@
 
 **Purpose**: Create listening feature scaffolding, config, and shared constants before domain implementation.
 
-- [ ] T001 Create listening package structure placeholders in `backend/src/main/java/com/khaleo/flashcard/controller/admin/listening/.gitkeep`, `backend/src/main/java/com/khaleo/flashcard/controller/listening/.gitkeep` and `backend/src/main/java/com/khaleo/flashcard/service/listening/.gitkeep`
-- [ ] T002 [P] Add listening environment properties (presign TTL, Cambridge base URL/key placeholders) in `backend/src/main/resources/application.yml`
-- [ ] T003 [P] Add listening UI constants (speed options, shortcut defaults, replay options) in `frontend/src/features/listening/config/listeningConfig.ts`
-- [ ] T004 [P] Add shared listening API TypeScript types in `frontend/src/features/listening/types/listeningApi.ts`
-- [ ] T005 [P] Define admin listening route paths and lazy-load wrappers in `frontend/src/router/AppRouter.tsx`
+- [X] T001 Create listening package structure placeholders in `backend/src/main/java/com/khaleo/flashcard/controller/admin/listening/.gitkeep`, `backend/src/main/java/com/khaleo/flashcard/controller/listening/.gitkeep` and `backend/src/main/java/com/khaleo/flashcard/service/listening/.gitkeep`
+- [X] T002 [P] Add listening environment properties (presign TTL, Cambridge base URL/key placeholders) in `backend/src/main/resources/application.yml`
+- [X] T003 [P] Add listening UI constants (speed options, shortcut defaults, replay options) in `frontend/src/features/listening/config/listeningConfig.ts`
+- [X] T004 [P] Add shared listening API TypeScript types in `frontend/src/features/listening/types/listeningApi.ts`
+- [X] T005 [P] Define admin listening route paths and lazy-load wrappers in `frontend/src/router/AppRouter.tsx`
 
 ---
 
@@ -25,18 +25,18 @@
 
 **CRITICAL**: Complete this phase before starting any user story.
 
-- [ ] T006 Create Flyway migration for `topics`, `exercises`, `lessons`, `sentences`, and `user_sentence_progress` in `backend/src/main/resources/db/migration/V20260421_016__listening_dictation_schema.sql`
-- [ ] T007 [P] Add JPA entities for listening domain in `backend/src/main/java/com/khaleo/flashcard/entity/{Topic.java,Exercise.java,Lesson.java,Sentence.java,UserSentenceProgress.java}`
-- [ ] T008 [P] Add listening repositories in `backend/src/main/java/com/khaleo/flashcard/repository/{TopicRepository.java,ExerciseRepository.java,LessonRepository.java,SentenceRepository.java,UserSentenceProgressRepository.java}`
-- [ ] T009 [P] Add shared listening DTO models in `backend/src/main/java/com/khaleo/flashcard/controller/listening/dto/{TopicDto.java,ExerciseDto.java,LessonDto.java,SentenceDto.java}`
-- [ ] T010 Add strict dictation normalization utility in `backend/src/main/java/com/khaleo/flashcard/service/listening/DictationNormalizer.java`
-- [ ] T011 [P] Add sentence media mode validator (`start_time/end_time` rules) in `backend/src/main/java/com/khaleo/flashcard/service/listening/SentenceMediaValidationService.java`
-- [ ] T012 [P] Add S3 presigned URL issuer for lesson/sentence media in `backend/src/main/java/com/khaleo/flashcard/service/listening/ListeningMediaAccessService.java`
-- [ ] T013 [P] Add Cambridge dictionary proxy client/service skeleton in `backend/src/main/java/com/khaleo/flashcard/service/listening/DictionaryProxyService.java`
-- [ ] T014 [P] Add frontend normalization and masking utilities in `frontend/src/features/listening/utils/{normalizeDictation.ts,maskDictationResult.ts}`
-- [ ] T015 [P] Add listening settings store with localStorage persistence in `frontend/src/store/listeningSettingsStore.ts`
-- [ ] T016 [P] Add blob/object URL playback hook in `frontend/src/features/listening/hooks/useListeningAudioPlayer.ts`
-- [ ] T017 Add listening exception mapping for validation/import errors in `backend/src/main/java/com/khaleo/flashcard/controller/listening/ListeningExceptionHandler.java`
+- [X] T006 Create Flyway migration for `topics`, `exercises`, `lessons`, `sentences`, and `user_sentence_progress` in `backend/src/main/resources/db/migration/V20260421_016__listening_dictation_schema.sql`
+- [X] T007 [P] Add JPA entities for listening domain in `backend/src/main/java/com/khaleo/flashcard/entity/{Topic.java,Exercise.java,Lesson.java,Sentence.java,UserSentenceProgress.java}`
+- [X] T008 [P] Add listening repositories in `backend/src/main/java/com/khaleo/flashcard/repository/{TopicRepository.java,ExerciseRepository.java,LessonRepository.java,SentenceRepository.java,UserSentenceProgressRepository.java}`
+- [X] T009 [P] Add shared listening DTO models in `backend/src/main/java/com/khaleo/flashcard/controller/listening/dto/{TopicDto.java,ExerciseDto.java,LessonDto.java,SentenceDto.java}`
+- [X] T010 Add strict dictation normalization utility in `backend/src/main/java/com/khaleo/flashcard/service/listening/DictationNormalizer.java`
+- [X] T011 [P] Add sentence media mode validator (`start_time/end_time` rules) in `backend/src/main/java/com/khaleo/flashcard/service/listening/SentenceMediaValidationService.java`
+- [X] T012 [P] Add S3 presigned URL issuer for lesson/sentence media in `backend/src/main/java/com/khaleo/flashcard/service/listening/ListeningMediaAccessService.java`
+- [X] T013 [P] Add Cambridge dictionary proxy client/service skeleton in `backend/src/main/java/com/khaleo/flashcard/service/listening/DictionaryProxyService.java`
+- [X] T014 [P] Add frontend normalization and masking utilities in `frontend/src/features/listening/utils/{normalizeDictation.ts,maskDictationResult.ts}`
+- [X] T015 [P] Add listening settings store with localStorage persistence in `frontend/src/store/listeningSettingsStore.ts`
+- [X] T016 [P] Add blob/object URL playback hook in `frontend/src/features/listening/hooks/useListeningAudioPlayer.ts`
+- [X] T017 Add listening exception mapping for validation/import errors in `backend/src/main/java/com/khaleo/flashcard/controller/listening/ListeningExceptionHandler.java`
 
 **Checkpoint**: Foundation complete, user stories can proceed.
 
@@ -50,27 +50,28 @@
 
 ### Tests for User Story 1
 
-- [ ] T018 [P] [US1] Add admin contract tests for CRUD/reorder/import endpoints in `backend/src/test/java/com/khaleo/flashcard/contract/listening/AdminListeningContractTest.java`
-- [ ] T019 [P] [US1] Add integration tests for scoped slug uniqueness and transactional reorder in `backend/src/test/java/com/khaleo/flashcard/integration/listening/AdminListeningHierarchyIT.java`
-- [ ] T020 [P] [US1] Add integration tests for sentence JSON import partial success response in `backend/src/test/java/com/khaleo/flashcard/integration/listening/AdminSentenceImportIT.java`
-- [ ] T021 [P] [US1] Add frontend admin API contract tests in `frontend/src/test/admin/listening/adminListeningApi.contract.test.ts`
-- [ ] T022 [P] [US1] Add frontend admin CMS UI tests (drill-down + reorder + import) in `frontend/src/test/admin/listening/adminListeningCms.test.tsx`
+- [X] T018 [P] [US1] Add admin contract tests for CRUD/reorder/import endpoints in `backend/src/test/java/com/khaleo/flashcard/contract/listening/AdminListeningContractTest.java`
+- [X] T019 [P] [US1] Add integration tests for scoped slug uniqueness and transactional reorder in `backend/src/test/java/com/khaleo/flashcard/integration/listening/AdminListeningHierarchyIT.java`
+- [X] T020 [P] [US1] Add integration tests for sentence JSON import partial success response in `backend/src/test/java/com/khaleo/flashcard/integration/listening/AdminSentenceImportIT.java`
+- [ ] T020a [P] [US1] Add explicit negative integration coverage proving admin save/import paths do not perform media-duration validation calls in phase 1 (FR-014) in `backend/src/test/java/com/khaleo/flashcard/integration/listening/AdminSentenceImportIT.java`
+- [X] T021 [P] [US1] Add frontend admin API contract tests in `frontend/src/test/admin/listening/adminListeningApi.contract.test.ts`
+- [X] T022 [P] [US1] Add frontend admin CMS UI tests (drill-down + reorder + import) in `frontend/src/test/admin/listening/adminListeningCms.test.tsx`
 
 ### Implementation for User Story 1
 
-- [ ] T023 [US1] Implement topic/exercise/lesson/sentence admin DTOs in `backend/src/main/java/com/khaleo/flashcard/controller/admin/listening/dto/{AdminTopicRequest.java,AdminExerciseRequest.java,AdminLessonRequest.java,AdminSentenceRequest.java}`
-- [ ] T024 [US1] Implement admin hierarchy CRUD service in `backend/src/main/java/com/khaleo/flashcard/service/listening/AdminListeningCrudService.java`
-- [ ] T025 [US1] Implement sentence reorder service in `backend/src/main/java/com/khaleo/flashcard/service/listening/AdminSentenceReorderService.java`
-- [ ] T026 [US1] Implement sentence JSON import service with partial success in `backend/src/main/java/com/khaleo/flashcard/service/listening/AdminSentenceImportService.java`
-- [ ] T027a [US1] Expose Admin Topic CRUD endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/admin/listening/AdminTopicController.java`
-- [ ] T027b [US1] Expose Admin Exercise CRUD endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/admin/listening/AdminExerciseController.java`
-- [ ] T027c [US1] Expose Admin Lesson CRUD endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/admin/listening/AdminLessonController.java`
-- [ ] T027d [US1] Expose Admin Sentence CRUD endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/admin/listening/AdminSentenceController.java`
-- [ ] T028 [US1] Add admin listening API client in `frontend/src/features/admin/listening/services/adminListeningApi.ts`
-- [ ] T029 [US1] Implement admin listening CMS page shell with drill-down table states in `frontend/src/features/admin/listening/AdminListeningPage.tsx`
-- [ ] T030 [US1] Implement sentence reorder drag-drop component in `frontend/src/features/admin/listening/components/SentenceReorderList.tsx`
-- [ ] T031 [US1] Implement sentence JSON import modal and error table in `frontend/src/features/admin/listening/components/SentenceJsonImportModal.tsx`
-- [ ] T032 [US1] Mount final AdminListeningPage component into the router and sidebar navigation in `frontend/src/components/Layout.tsx`
+- [X] T023 [US1] Implement topic/exercise/lesson/sentence admin DTOs in `backend/src/main/java/com/khaleo/flashcard/controller/admin/listening/dto/{AdminTopicRequest.java,AdminExerciseRequest.java,AdminLessonRequest.java,AdminSentenceRequest.java}`
+- [X] T024 [US1] Implement admin hierarchy CRUD service in `backend/src/main/java/com/khaleo/flashcard/service/listening/AdminListeningCrudService.java`
+- [X] T025 [US1] Implement sentence reorder service in `backend/src/main/java/com/khaleo/flashcard/service/listening/AdminSentenceReorderService.java`
+- [X] T026 [US1] Implement sentence JSON import service with partial success in `backend/src/main/java/com/khaleo/flashcard/service/listening/AdminSentenceImportService.java`
+- [X] T027a [US1] Expose Admin Topic CRUD endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/admin/listening/AdminTopicController.java`
+- [X] T027b [US1] Expose Admin Exercise CRUD endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/admin/listening/AdminExerciseController.java`
+- [X] T027c [US1] Expose Admin Lesson CRUD endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/admin/listening/AdminLessonController.java`
+- [X] T027d [US1] Expose Admin Sentence CRUD endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/admin/listening/AdminSentenceController.java`
+- [X] T028 [US1] Add admin listening API client in `frontend/src/features/admin/listening/services/adminListeningApi.ts`
+- [X] T029 [US1] Implement admin listening CMS page shell with drill-down table states in `frontend/src/features/admin/listening/AdminListeningPage.tsx`
+- [X] T030 [US1] Implement sentence reorder drag-drop component in `frontend/src/features/admin/listening/components/SentenceReorderList.tsx`
+- [X] T031 [US1] Implement sentence JSON import modal and error table in `frontend/src/features/admin/listening/components/SentenceJsonImportModal.tsx`
+- [X] T032 [US1] Mount final AdminListeningPage component into the router and sidebar navigation in `frontend/src/components/Layout.tsx`
 
 **Checkpoint**: US1 is independently functional and testable.
 
@@ -84,26 +85,28 @@
 
 ### Tests for User Story 2
 
-- [ ] T033 [P] [US2] Add backend contract tests for learner workspace and progress update APIs in `backend/src/test/java/com/khaleo/flashcard/contract/listening/LearnerListeningContractTest.java`
-- [ ] T034 [P] [US2] Add backend integration tests for `correct_check|skip` progress guard in `backend/src/test/java/com/khaleo/flashcard/integration/listening/LearnerProgressUpdateIT.java`
-- [ ] T035 [P] [US2] Add frontend unit tests for normalization and exact-match evaluator in `frontend/src/test/listening/dictationEvaluator.test.ts`
-- [ ] T036 [P] [US2] Add frontend component tests for dictation check/skip/shortcuts in `frontend/src/test/listening/listeningDictationFlow.test.tsx`
-- [ ] T037 [P] [US2] Add Playwright learner dictation e2e smoke in `frontend/tests/e2e/listening-dictation-core.spec.ts`
+- [X] T033 [P] [US2] Add backend contract tests for learner workspace and progress update APIs in `backend/src/test/java/com/khaleo/flashcard/contract/listening/LearnerListeningContractTest.java`
+- [X] T034 [P] [US2] Add backend integration tests for `correct_check|skip` progress guard in `backend/src/test/java/com/khaleo/flashcard/integration/listening/LearnerProgressUpdateIT.java`
+- [ ] T034a [P] [US2] Add explicit negative integration assertions that incorrect Check does not persist attempt-history records/events and does not mutate completion state (FR-021) in `backend/src/test/java/com/khaleo/flashcard/integration/listening/LearnerProgressUpdateIT.java`
+- [X] T035 [P] [US2] Add frontend unit tests for normalization and exact-match evaluator in `frontend/src/test/listening/dictationEvaluator.test.ts`
+- [X] T036 [P] [US2] Add frontend component tests for dictation check/skip/shortcuts in `frontend/src/test/listening/listeningDictationFlow.test.tsx`
+- [X] T037 [P] [US2] Add Playwright learner dictation e2e smoke in `frontend/tests/e2e/listening-dictation-core.spec.ts`
+- [ ] T037a [P] [US2] Add frontend/e2e guard that lesson playback/dictation flow performs no media-duration validation API call in phase 1 (FR-014) in `frontend/tests/e2e/listening-dictation-core.spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T038a [US2] Implement learner retrieval DTOs for catalogue in `backend/src/main/java/com/khaleo/flashcard/controller/listening/dto/{TopicListResponse.java,ExerciseListResponse.java}`
-- [ ] T038b [US2] Implement learner catalogue query service (topics, exercises by topic, lesson by slug) in `backend/src/main/java/com/khaleo/flashcard/service/listening/LearnerCatalogueService.java`
-- [ ] T038c [US2] Expose learner catalogue endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/listening/LearnerCatalogueController.java`
-- [ ] T038 [US2] Implement learner workspace response DTOs in `backend/src/main/java/com/khaleo/flashcard/controller/listening/dto/{LessonWorkspaceResponse.java,ProgressUpdateRequest.java}`
-- [ ] T039 [US2] Implement learner workspace query service in `backend/src/main/java/com/khaleo/flashcard/service/listening/LearnerListeningWorkspaceService.java`
-- [ ] T040 [US2] Implement progress upsert service and percent calculation in `backend/src/main/java/com/khaleo/flashcard/service/listening/LearnerSentenceProgressService.java`
-- [ ] T041 [US2] Expose learner workspace/progress endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/listening/LearnerListeningController.java`
-- [ ] T042 [US2] Implement learner listening API client in `frontend/src/features/listening/services/listeningApi.ts`
-- [ ] T043 [US2] Implement dictation state hook (answer, check result, skip, current index) in `frontend/src/features/listening/hooks/useDictationSession.ts`
-- [ ] T044 [US2] Replace placeholder listening page with core dictation workspace in `frontend/src/features/listening/ListeningPage.tsx`
-- [ ] T045 [US2] Implement dictation input panel with check/skip and prev/next controls in `frontend/src/features/listening/components/DictationTab.tsx`
-- [ ] T046 [US2] Implement progress header and sentence counter in `frontend/src/features/listening/components/ListeningProgressHeader.tsx`
+- [X] T038a [US2] Implement learner retrieval DTOs for catalogue in `backend/src/main/java/com/khaleo/flashcard/controller/listening/dto/{TopicListResponse.java,ExerciseListResponse.java}`
+- [X] T038b [US2] Implement learner catalogue query service (topics, exercises by topic, lesson by slug) in `backend/src/main/java/com/khaleo/flashcard/service/listening/LearnerCatalogueService.java`
+- [X] T038c [US2] Expose learner catalogue endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/listening/LearnerCatalogueController.java`
+- [X] T038 [US2] Implement learner workspace response DTOs in `backend/src/main/java/com/khaleo/flashcard/controller/listening/dto/{LessonWorkspaceResponse.java,ProgressUpdateRequest.java}`
+- [X] T039 [US2] Implement learner workspace query service in `backend/src/main/java/com/khaleo/flashcard/service/listening/LearnerListeningWorkspaceService.java`
+- [X] T040 [US2] Implement progress upsert service and percent calculation in `backend/src/main/java/com/khaleo/flashcard/service/listening/LearnerSentenceProgressService.java`
+- [X] T041 [US2] Expose learner workspace/progress endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/listening/LearnerListeningController.java`
+- [X] T042 [US2] Implement learner listening API client in `frontend/src/features/listening/services/listeningApi.ts`
+- [X] T043 [US2] Implement dictation state hook (answer, check result, skip, current index) in `frontend/src/features/listening/hooks/useDictationSession.ts`
+- [X] T044 [US2] Replace placeholder listening page with core dictation workspace in `frontend/src/features/listening/ListeningPage.tsx`
+- [X] T045 [US2] Implement dictation input panel with check/skip and prev/next controls in `frontend/src/features/listening/components/DictationTab.tsx`
+- [X] T046 [US2] Implement progress header and sentence counter in `frontend/src/features/listening/components/ListeningProgressHeader.tsx`
 
 **Checkpoint**: US2 is independently functional and testable.
 
@@ -117,23 +120,23 @@
 
 ### Tests for User Story 3
 
-- [ ] T047 [P] [US3] Add backend contract tests for media access and dictionary proxy endpoints in `backend/src/test/java/com/khaleo/flashcard/contract/listening/ListeningDictionaryMediaContractTest.java`
-- [ ] T048 [P] [US3] Add backend integration tests for dictionary failure fallback payload in `backend/src/test/java/com/khaleo/flashcard/integration/listening/DictionaryProxyFallbackIT.java`
-- [ ] T049 [P] [US3] Add frontend unit tests for transcript auto-scroll and loop logic in `frontend/src/test/listening/transcriptPlayback.test.ts`
-- [ ] T050 [P] [US3] Add frontend component tests for settings modal persistence and shortcuts overrides in `frontend/src/test/listening/listeningSettingsModal.test.tsx`
-- [ ] T051 [P] [US3] Add frontend component tests for dictionary popup success/fallback UX in `frontend/src/test/listening/dictionaryPopup.test.tsx`
-- [ ] T052 [P] [US3] Add Playwright e2e for transcript + dictionary + settings flow in `frontend/tests/e2e/listening-transcript-dictionary.spec.ts`
+- [X] T047 [P] [US3] Add backend contract tests for media access and dictionary proxy endpoints in `backend/src/test/java/com/khaleo/flashcard/contract/listening/ListeningDictionaryMediaContractTest.java`
+- [X] T048 [P] [US3] Add backend integration tests for dictionary failure fallback payload in `backend/src/test/java/com/khaleo/flashcard/integration/listening/DictionaryProxyFallbackIT.java`
+- [X] T049 [P] [US3] Add frontend unit tests for transcript auto-scroll and loop logic in `frontend/src/test/listening/transcriptPlayback.test.ts`
+- [X] T050 [P] [US3] Add frontend component tests for settings modal persistence and shortcuts overrides in `frontend/src/test/listening/listeningSettingsModal.test.tsx`
+- [X] T051 [P] [US3] Add frontend component tests for dictionary popup success/fallback UX in `frontend/src/test/listening/dictionaryPopup.test.tsx`
+- [X] T052 [P] [US3] Add Playwright e2e for transcript + dictionary + settings flow in `frontend/tests/e2e/listening-transcript-dictionary.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T053 [US3] Implement media access request/response DTOs in `backend/src/main/java/com/khaleo/flashcard/controller/listening/dto/{MediaAccessRequest.java,MediaAccessResponse.java}`
-- [ ] T054 [US3] Implement dictionary proxy endpoint contract DTOs in `backend/src/main/java/com/khaleo/flashcard/controller/listening/dto/{DictionaryLookupResponse.java,DictionaryLookupFailureResponse.java}`
-- [ ] T055 [US3] Expose media access and dictionary endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/listening/ListeningSupportController.java`
-- [ ] T056 [US3] Implement dictionary cache repository in `backend/src/main/java/com/khaleo/flashcard/repository/DictionaryCacheRepository.java` and service in `backend/src/main/java/com/khaleo/flashcard/service/listening/DictionaryCacheService.java`
-- [ ] T057 [US3] Implement full transcript tab with click-to-play, auto-scroll, and loop controls in `frontend/src/features/listening/components/FullTranscriptTab.tsx`
-- [ ] T058 [US3] Implement settings modal UI and localStorage sync in `frontend/src/features/listening/components/ListeningSettingsModal.tsx`
-- [ ] T059 [US3] Implement clickable word dictionary popup component in `frontend/src/features/listening/components/DictionaryPopover.tsx`
-- [ ] T060 [US3] Integrate transcript/settings/dictionary into listening workspace shell in `frontend/src/features/listening/ListeningPage.tsx`
+- [X] T053 [US3] Implement media access request/response DTOs in `backend/src/main/java/com/khaleo/flashcard/controller/listening/dto/{MediaAccessRequest.java,MediaAccessResponse.java}`
+- [X] T054 [US3] Implement dictionary proxy endpoint contract DTOs in `backend/src/main/java/com/khaleo/flashcard/controller/listening/dto/{DictionaryLookupResponse.java,DictionaryLookupFailureResponse.java}`
+- [X] T055 [US3] Expose media access and dictionary endpoints in `backend/src/main/java/com/khaleo/flashcard/controller/listening/ListeningSupportController.java`
+- [X] T056 [US3] Implement dictionary cache repository in `backend/src/main/java/com/khaleo/flashcard/repository/DictionaryCacheRepository.java` and service in `backend/src/main/java/com/khaleo/flashcard/service/listening/DictionaryCacheService.java`
+- [X] T057 [US3] Implement full transcript tab with click-to-play, auto-scroll, and loop controls in `frontend/src/features/listening/components/FullTranscriptTab.tsx`
+- [X] T058 [US3] Implement settings modal UI and localStorage sync in `frontend/src/features/listening/components/ListeningSettingsModal.tsx`
+- [X] T059 [US3] Implement clickable word dictionary popup component in `frontend/src/features/listening/components/DictionaryPopover.tsx`
+- [X] T060 [US3] Integrate transcript/settings/dictionary into listening workspace shell in `frontend/src/features/listening/ListeningPage.tsx`
 
 **Checkpoint**: US3 is independently functional and testable.
 
@@ -143,12 +146,15 @@
 
 **Purpose**: Hardening, documentation, and release-readiness validation across all stories.
 
-- [ ] T061 [P] Update feature quickstart troubleshooting and verification notes in `specs/003-listening-dictation/quickstart.md`
-- [ ] T062 [P] Align OpenAPI details with implemented payloads/codes in `specs/003-listening-dictation/contracts/listening-dictation.openapi.yaml`
-- [ ] T063 [P] Document listening learner/admin usage and env variables in `frontend/README.md` and `backend/README.md`
-- [ ] T064 [P] Add manual local e2e checklist for listening workflows in `docs/manual-e2e/phase3-listening-local-checklist.md`
-- [ ] T065 Run backend listening regression suite in `backend/src/test/java/com/khaleo/flashcard/integration/listening/ListeningFeatureRegressionIT.java`
-- [ ] T066 [P] Run frontend unit and e2e listening suites and capture outcomes in `docs/manual-e2e/phase3-listening-local-checklist.md`
+- [X] T061 [P] Update feature quickstart troubleshooting and verification notes in `specs/003-listening-dictation/quickstart.md`
+- [X] T062 [P] Align OpenAPI details with implemented payloads/codes in `specs/003-listening-dictation/contracts/listening-dictation.openapi.yaml`
+- [X] T063 [P] Document listening learner/admin usage and env variables in `frontend/README.md` and `backend/README.md`
+- [X] T064 [P] Add manual local e2e checklist for listening workflows in `docs/manual-e2e/phase3-listening-local-checklist.md`
+- [X] T065 Run backend listening regression suite in `backend/src/test/java/com/khaleo/flashcard/integration/listening/ListeningFeatureRegressionIT.java`
+- [X] T066 [P] Run frontend unit and e2e listening suites and capture outcomes in `docs/manual-e2e/phase3-listening-local-checklist.md`
+- [ ] T067 [P] Measure and document performance evidence against plan p95 targets (learner APIs, UI reaction, reorder/import latency) in `docs/manual-e2e/phase3-listening-local-checklist.md`
+
+`SC-002` note: treat as post-build UAT business metric; do not enforce as blocking automated CI/build gate.
 
 ---
 
