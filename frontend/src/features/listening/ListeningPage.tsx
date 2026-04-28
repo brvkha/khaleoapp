@@ -76,11 +76,18 @@ function LearnerListeningWorkspace() {
       try {
         setError(null)
         const next = await getPublishedTopics()
-        if (!active) {
-          return
-        }
-        setTopics(next)
-        setTopicSlug(next[0]?.slug ?? '')
+
+        if (!active) return
+
+        // KIỂM TRA TẠI ĐÂY:
+        // Nếu 'next' là mảng thì dùng luôn, nếu là object thì tìm mảng bên trong nó (ví dụ next.data)
+        // Nếu không phải mảng, mặc định gán là mảng rỗng []
+        const actualData = Array.isArray(next) ? next : (next as any).data || []
+
+        console.log("Dữ liệu thực tế gán vào topics:", actualData) // Để debug
+
+        setTopics(actualData)
+        setTopicSlug(actualData[0]?.slug ?? '')
       } catch (loadError) {
         if (active) {
           setError(loadError instanceof Error ? loadError.message : 'Failed to load listening topics.')
@@ -89,10 +96,7 @@ function LearnerListeningWorkspace() {
     }
 
     void loadTopics()
-
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [])
 
   useEffect(() => {
@@ -205,8 +209,8 @@ function LearnerListeningWorkspace() {
   }, [selectedLessonId])
 
   const selectedTopic = useMemo(
-    () => topics.find((topic) => topic.slug === topicSlug) ?? null,
-    [topics, topicSlug],
+      () => (Array.isArray(topics) ? topics.find((topic) => topic.slug === topicSlug) : null) ?? null,
+      [topics, topicSlug],
   )
   const selectedExercise = useMemo(
     () => exercises.find((exercise) => exercise.slug === exerciseSlug) ?? null,

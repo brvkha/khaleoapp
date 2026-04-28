@@ -19,13 +19,10 @@
   - `id` (UUID, PK)
   - `topic_id` (UUID, FK -> `topics.id`, required)
   - `name` (VARCHAR, required)
-  - `slug` (VARCHAR, required, unique within `topic_id`)
-  - `order_index` (INT, required)
+  - `slug` (VARCHAR, required)
   - `status` (ENUM: `draft|published|archived`, default `draft`)
   - `created_at` (TIMESTAMP, required)
   - `updated_at` (TIMESTAMP, required)
-- Constraints:
-  - `UNIQUE(topic_id, slug)`
 
 ### 3) Lesson
 - Description: Playable listening lesson under one exercise (for example Test 1 - Part 1).
@@ -102,4 +99,3 @@
   - `progress_percent = completed_sentence_count / total_sentences * 100`
 - Admin reorder lifecycle:
   - drag-drop in UI -> ordered IDs payload -> backend rewrites `order_index` transactionally for that lesson.
-
