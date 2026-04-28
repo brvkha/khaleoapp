@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AdminListeningPage } from '../admin/listening/AdminListeningPage'
-import { useAuthStore } from '../../store/authStore'
 import { DictationTab } from './components/DictationTab'
 import { DictionaryPopover } from './components/DictionaryPopover'
 import { FullTranscriptTab } from './components/FullTranscriptTab'
@@ -40,11 +38,6 @@ const EMPTY_SESSION_STATE: DictationSessionViewState = {
 }
 
 export function ListeningPage() {
-  const currentUser = useAuthStore((state) => state.currentUser)
-
-  if (currentUser?.role === 'ADMIN') {
-    return <AdminListeningPage />
-  }
 
   return <LearnerListeningWorkspace />
 }

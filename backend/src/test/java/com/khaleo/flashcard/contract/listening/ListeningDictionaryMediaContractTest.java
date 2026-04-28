@@ -14,6 +14,7 @@ import com.khaleo.flashcard.controller.listening.dto.DictionaryLookupResponse;
 import com.khaleo.flashcard.controller.listening.dto.MediaAccessResponse;
 import com.khaleo.flashcard.service.listening.DictionaryProxyService;
 import com.khaleo.flashcard.service.listening.ListeningMediaAccessService;
+import com.khaleo.flashcard.service.listening.ListeningStructuredLogger;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +48,9 @@ class ListeningDictionaryMediaContractTest {
 
     @MockBean
     private UserRepository userRepository;
+
+    @MockBean
+    private ListeningStructuredLogger listeningStructuredLogger;
 
     @Test
     @DisplayName("POST /api/v1/listening/media/access returns presigned metadata")

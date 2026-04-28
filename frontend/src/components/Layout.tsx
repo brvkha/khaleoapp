@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import { useNotificationStore } from '../store/notificationStore'
 import { Breadcrumbs } from './navigation/Breadcrumbs'
 
-type NavSection = 'flashcard' | 'listening'
+type NavSection = 'flashcard' | 'listening' | 'admin-listening'
 
 export function Layout() {
   const currentUser = useAuthStore((state) => state.currentUser)
@@ -12,7 +12,11 @@ export function Layout() {
   const pushSuccess = useNotificationStore((state) => state.pushSuccess)
   const { pathname } = useLocation()
 
-  const currentSection: NavSection = pathname.startsWith('/listening') ? 'listening' : 'flashcard'
+  const currentSection: NavSection = pathname.startsWith('/admin/listening')
+    ? 'admin-listening'
+    : pathname.startsWith('/listening')
+      ? 'listening'
+      : 'flashcard'
 
   const sectionItems = useMemo(
     () =>
@@ -23,7 +27,12 @@ export function Layout() {
             { label: 'Study', to: '/flashcard/study', active: pathname.startsWith('/flashcard/study') },
             { label: 'Settings', to: '/flashcard/settings', active: pathname.startsWith('/flashcard/settings') },
           ]
-        : [{ label: 'Listening Home', to: '/listening', active: pathname.startsWith('/listening') }],
+        : currentSection === 'admin-listening'
+          ? [
+              { label: 'Listening Practice', to: '/listening', active: pathname.startsWith('/listening') },
+              { label: 'Listening CMS', to: '/admin/listening', active: pathname.startsWith('/admin/listening') },
+            ]
+          : [{ label: 'Listening Home', to: '/listening', active: pathname.startsWith('/listening') }],
     [currentSection, pathname],
   )
 
@@ -53,9 +62,14 @@ export function Layout() {
                 Listening
               </NavLink>
               {currentUser?.role === 'ADMIN' ? (
-                <NavLink className={primaryTabClass} to="/admin">
-                  Admin
-                </NavLink>
+                <>
+                  <NavLink className={primaryTabClass} to="/admin">
+                    Admin
+                  </NavLink>
+                  <NavLink className={primaryTabClass} to="/admin/listening">
+                    Listening Admin
+                  </NavLink>
+                </>
               ) : null}
             </div>
             <div className="flex items-center gap-3">

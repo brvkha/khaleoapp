@@ -6,7 +6,9 @@ import com.khaleo.flashcard.controller.listening.dto.MediaAccessRequest;
 import com.khaleo.flashcard.controller.listening.dto.MediaAccessResponse;
 import com.khaleo.flashcard.service.listening.DictionaryProxyService;
 import com.khaleo.flashcard.service.listening.ListeningMediaAccessService;
+import com.khaleo.flashcard.service.listening.ListeningStructuredLogger;
 import jakarta.validation.Valid;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,9 +26,11 @@ public class ListeningSupportController {
 
     private final ListeningMediaAccessService listeningMediaAccessService;
     private final DictionaryProxyService dictionaryProxyService;
+    private final ListeningStructuredLogger listeningStructuredLogger;
 
     @PostMapping("/media/access")
     public MediaAccessResponse issueMediaAccess(@Valid @RequestBody MediaAccessRequest request) {
+        listeningStructuredLogger.info("listening_media_access_request_received", Map.of("mediaUrl", request.mediaUrl()));
         return listeningMediaAccessService.issueAccessUrl(request.mediaUrl());
     }
 
@@ -34,8 +38,10 @@ public class ListeningSupportController {
     public ResponseEntity<?> dictionaryLookup(@RequestParam String term) {
         try {
             DictionaryLookupResponse response = dictionaryProxyService.lookup(term);
+            listeningStructuredLogger.info("listening_dictionary_lookup_succeeded", Map.of("term", term));
             return ResponseEntity.ok(response);
-        } catch (RuntimeException exception) {
+        } catch (IllegalStateException exception) {
+            listeningStructuredLogger.warn("listening_dictionary_lookup_failed", Map.of("term", term, "reason", exception.getMessage()));
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(new DictionaryLookupFailureResponse(
                             "PROVIDER_UNAVAILABLE",

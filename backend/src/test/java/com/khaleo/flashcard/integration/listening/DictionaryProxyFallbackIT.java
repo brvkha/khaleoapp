@@ -11,6 +11,7 @@ import com.khaleo.flashcard.repository.UserRepository;
 import com.khaleo.flashcard.service.auth.JwtTokenService;
 import com.khaleo.flashcard.service.listening.DictionaryProxyService;
 import com.khaleo.flashcard.service.listening.ListeningMediaAccessService;
+import com.khaleo.flashcard.service.listening.ListeningStructuredLogger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,9 @@ class DictionaryProxyFallbackIT {
 
     @MockBean
     private UserRepository userRepository;
+
+    @MockBean
+    private ListeningStructuredLogger listeningStructuredLogger;
 
     @Test
     @DisplayName("returns controlled fallback payload when provider throws")

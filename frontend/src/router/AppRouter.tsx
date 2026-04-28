@@ -15,6 +15,7 @@ import { AdminCardsPage } from '../features/admin/cards/AdminCardsPage'
 import { AdminModerationAuditPage } from '../features/admin/audit/AdminModerationAuditPage'
 import { FSRSTestPage } from '../features/admin/fsrs-test/FSRSTestPage'
 import { ListeningPage } from '../features/listening/ListeningPage'
+import { AdminListeningPage } from '../features/admin/listening/AdminListeningPage'
 
 function BlockedPage() {
   return (
@@ -52,6 +53,7 @@ export function AppRouter() {
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="decks" element={<AdminDecksPage />} />
           <Route path="cards" element={<AdminCardsPage />} />
+          <Route path="listening" element={<AdminListeningPage />} />
           <Route path="audit" element={<AdminModerationAuditPage />} />
           <Route path="fsrs-test" element={<FSRSTestPage />} />
         </Route>
