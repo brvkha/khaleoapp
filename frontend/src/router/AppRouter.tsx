@@ -14,8 +14,6 @@ import { AdminDecksPage } from '../features/admin/decks/AdminDecksPage'
 import { AdminCardsPage } from '../features/admin/cards/AdminCardsPage'
 import { AdminModerationAuditPage } from '../features/admin/audit/AdminModerationAuditPage'
 import { FSRSTestPage } from '../features/admin/fsrs-test/FSRSTestPage'
-import { ListeningPage } from '../features/listening/ListeningPage'
-import { AdminListeningPage } from '../features/admin/listening/AdminListeningPage'
 
 function BlockedPage() {
   return (
@@ -45,7 +43,6 @@ export function AppRouter() {
           <Route path="/flashcard/study/session/:deckId" element={<StudySessionPage />} />
           <Route path="/study/session/:deckId" element={<StudySessionPage />} />
           <Route path="/flashcard/settings" element={<ProfilePage />} />
-          <Route path="/listening" element={<ListeningPage />} />
         </Route>
 
         <Route path="/admin" element={<RequireAdmin />}>
@@ -53,7 +50,6 @@ export function AppRouter() {
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="decks" element={<AdminDecksPage />} />
           <Route path="cards" element={<AdminCardsPage />} />
-          <Route path="listening" element={<AdminListeningPage />} />
           <Route path="audit" element={<AdminModerationAuditPage />} />
           <Route path="fsrs-test" element={<FSRSTestPage />} />
         </Route>
