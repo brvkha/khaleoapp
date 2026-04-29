@@ -64,7 +64,7 @@ public class AdminListeningCrudService {
     }
 
     @Transactional(readOnly = true)
-    public List<ListeningDtos.ExerciseDto> listExercises(UUID topicId) {
+    public List<ListeningDtos.ExerciseDto> listExercises(UUID topicId) { if (topicId == null) { return exerciseRepository.findAll().stream().map(this::toExerciseDto).toList(); }
         findTopic(topicId);
         return exerciseRepository.findByTopicIdOrderByOrderIndexAsc(topicId).stream().map(this::toExerciseDto).toList();
     }
@@ -93,7 +93,7 @@ public class AdminListeningCrudService {
     }
 
     @Transactional(readOnly = true)
-    public List<ListeningDtos.LessonDto> listLessons(UUID exerciseId) {
+    public List<ListeningDtos.LessonDto> listLessons(UUID exerciseId) { if (exerciseId == null) { return lessonRepository.findAll().stream().map(this::toLessonDto).toList(); }
         findExercise(exerciseId);
         return lessonRepository.findByExerciseIdOrderByOrderIndexAsc(exerciseId).stream().map(this::toLessonDto).toList();
     }
@@ -124,7 +124,7 @@ public class AdminListeningCrudService {
     }
 
     @Transactional(readOnly = true)
-    public List<ListeningDtos.SentenceDto> listSentences(UUID lessonId) {
+    public List<ListeningDtos.SentenceDto> listSentences(UUID lessonId) { if (lessonId == null) { return sentenceRepository.findAll().stream().map(this::toSentenceDto).toList(); }
         findLesson(lessonId);
         return sentenceRepository.findByLessonIdOrderByOrderIndexAsc(lessonId).stream().map(this::toSentenceDto).toList();
     }

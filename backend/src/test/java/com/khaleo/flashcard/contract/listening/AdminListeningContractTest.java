@@ -146,7 +146,7 @@ class AdminListeningContractTest {
 
     mockMvc
         .perform(
-            post("/api/v1/admin/listening/topics/" + testTopic.getId() + "/exercises")
+            post("/api/v1/admin/listening/exercises?topicId=" + testTopic.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
@@ -168,7 +168,7 @@ class AdminListeningContractTest {
 
     mockMvc
         .perform(
-            get("/api/v1/admin/listening/topics/" + testTopic.getId() + "/exercises")
+            get("/api/v1/admin/listening/exercises?topicId=" + testTopic.getId())
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
@@ -231,7 +231,7 @@ class AdminListeningContractTest {
 
     mockMvc
         .perform(
-            post("/api/v1/admin/listening/exercises/" + exercise.getId() + "/lessons")
+            post("/api/v1/admin/listening/lessons?exerciseId=" + exercise.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
@@ -261,7 +261,7 @@ class AdminListeningContractTest {
 
     mockMvc
         .perform(
-            get("/api/v1/admin/listening/exercises/" + exercise.getId() + "/lessons")
+            get("/api/v1/admin/listening/lessons?exerciseId=" + exercise.getId())
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
@@ -348,7 +348,7 @@ class AdminListeningContractTest {
 
     mockMvc
         .perform(
-            post("/api/v1/admin/listening/lessons/" + lesson.getId() + "/sentences")
+            post("/api/v1/admin/listening/sentences?lessonId=" + lesson.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
@@ -384,7 +384,7 @@ class AdminListeningContractTest {
 
     mockMvc
         .perform(
-            get("/api/v1/admin/listening/lessons/" + lesson.getId() + "/sentences")
+            get("/api/v1/admin/listening/sentences?lessonId=" + lesson.getId())
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
@@ -497,7 +497,7 @@ class AdminListeningContractTest {
 
     mockMvc
         .perform(
-            post("/api/v1/admin/listening/lessons/" + lesson.getId() + "/sentences")
+            post("/api/v1/admin/listening/sentences?lessonId=" + lesson.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
