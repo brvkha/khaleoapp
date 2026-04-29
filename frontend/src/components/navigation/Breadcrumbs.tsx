@@ -9,7 +9,6 @@ const LABEL_BY_SEGMENT: Record<string, string> = {
   study: 'Study',
   session: 'Session',
   settings: 'Settings',
-  listening: 'Listening',
   admin: 'Admin',
   users: 'Users',
   audit: 'Audit',

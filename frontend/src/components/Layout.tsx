@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import { useNotificationStore } from '../store/notificationStore'
 import { Breadcrumbs } from './navigation/Breadcrumbs'
 
-type NavSection = 'flashcard' | 'listening' | 'admin-listening'
+type NavSection = 'flashcard' | 'admin'
 
 export function Layout() {
   const currentUser = useAuthStore((state) => state.currentUser)
@@ -12,11 +12,9 @@ export function Layout() {
   const pushSuccess = useNotificationStore((state) => state.pushSuccess)
   const { pathname } = useLocation()
 
-  const currentSection: NavSection = pathname.startsWith('/admin/listening')
-    ? 'admin-listening'
-    : pathname.startsWith('/listening')
-      ? 'listening'
-      : 'flashcard'
+  const currentSection: NavSection = pathname.startsWith('/admin')
+    ? 'admin'
+    : 'flashcard'
 
   const sectionItems = useMemo(
     () =>
@@ -27,12 +25,13 @@ export function Layout() {
             { label: 'Study', to: '/flashcard/study', active: pathname.startsWith('/flashcard/study') },
             { label: 'Settings', to: '/flashcard/settings', active: pathname.startsWith('/flashcard/settings') },
           ]
-        : currentSection === 'admin-listening'
-          ? [
-              { label: 'Listening Practice', to: '/listening', active: pathname.startsWith('/listening') },
-              { label: 'Listening CMS', to: '/admin/listening', active: pathname.startsWith('/admin/listening') },
-            ]
-          : [{ label: 'Listening Home', to: '/listening', active: pathname.startsWith('/listening') }],
+        : [
+            { label: 'Dashboard', to: '/admin', active: pathname === '/admin' },
+            { label: 'Users', to: '/admin/users', active: pathname.startsWith('/admin/users') },
+            { label: 'Decks', to: '/admin/decks', active: pathname.startsWith('/admin/decks') },
+            { label: 'Cards', to: '/admin/cards', active: pathname.startsWith('/admin/cards') },
+            { label: 'Audit', to: '/admin/audit', active: pathname.startsWith('/admin/audit') },
+          ],
     [currentSection, pathname],
   )
 
@@ -58,18 +57,10 @@ export function Layout() {
               <NavLink className={primaryTabClass} to="/flashcard/decks">
                 Flashcard
               </NavLink>
-              <NavLink className={primaryTabClass} to="/listening">
-                Listening
-              </NavLink>
               {currentUser?.role === 'ADMIN' ? (
-                <>
-                  <NavLink className={primaryTabClass} to="/admin">
-                    Admin
-                  </NavLink>
-                  <NavLink className={primaryTabClass} to="/admin/listening">
-                    Listening Admin
-                  </NavLink>
-                </>
+                <NavLink className={primaryTabClass} to="/admin">
+                  Admin
+                </NavLink>
               ) : null}
             </div>
             <div className="flex items-center gap-3">
@@ -116,7 +107,7 @@ export function Layout() {
       <div className="mx-auto flex w-full max-w-6xl gap-4 p-4">
         <aside className="hidden w-32 shrink-0 rounded-xl border border-slate-200 bg-white p-3 md:block">
           <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {currentSection === 'flashcard' ? 'Flashcard' : 'Listening'}
+            {currentSection === 'flashcard' ? 'Flashcard' : 'Admin'}
           </p>
           <nav className="space-y-1">
             {sectionItems.map((item) => (
