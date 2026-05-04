@@ -1,4 +1,4 @@
-name: Destroy Production Infra (DANGER)
+name: Emergency AWS Cleanup (STATE-FREE DANGER)
 
 on:
   workflow_dispatch:
@@ -18,15 +18,26 @@ permissions:
 env:
   AWS_REGION: ap-southeast-1
   PROJECT_NAME: khaleoapp
-  TF_APP_DIR: infra/terraform/app
-  ROUTE53_ZONE_NAME: khaleoshop.click
-  FRONTEND_DOMAIN_NAME: khaleoshop.click
-  FRONTEND_ADDITIONAL_DOMAIN_NAME: www.khaleoshop.click
-  API_DOMAIN_NAME: api.khaleoshop.click
+  ENVIRONMENT: prod
+  HOSTED_ZONE_ID: Z09479913APS5DRNMZYZ3
+  FRONTEND_BUCKET: khaleoapp-prod-frontend-817888697629
+  CLOUDFRONT_DISTRIBUTION_ID: E3SCOR5XMR0TOY
+  EC2_INSTANCE_ID: i-0fa666265f036c141
+  RDS_INSTANCE_ID: khaleoapp-prod-db
+  TF_STATE_BUCKET: khaleoapp-tf-state-20260410
+  TF_STATE_KEY: khaleoapp/prod/terraform.tfstate
+  TF_LOCK_TABLE: khaleoapp-terraform-lock
+  EC2_ROLE_NAME: khaleoapp-prod-ec2-ssm-role
+  EC2_INSTANCE_PROFILE_NAME: khaleoapp-prod-instance-profile
+  SSM_DOCUMENT_NAME: khaleoapp-prod-nginx-tls-bootstrap
+  FRONTEND_ACM_DOMAIN: khaleoshop.click
+  FRONTEND_ACM_ALT_DOMAIN: www.khaleoshop.click
+  FRONTEND_OAC_NAME: khaleoapp-prod-oac
+  SSM_SESSION_LOG_GROUP: /aws/ssm/khaleoapp/session
 
 jobs:
   destroy-infra:
-    name: Nuke Production Environment
+    name: Emergency Production Cleanup
     runs-on: ubuntu-latest
     environment: prod
     if: ${{ github.event.inputs.confirm_destroy == 'DESTROY' }}
@@ -35,11 +46,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.8.5
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -47,135 +53,29 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Verify Terraform files
+      - name: Run emergency cleanup
         shell: bash
+        env:
+          DESTROY_BACKEND_STATE: ${{ github.event.inputs.destroy_backend_state }}
         run: |
           set -euo pipefail
-
-          test -f "${TF_APP_DIR}/backend.hcl"
-          test -f "${TF_APP_DIR}/terraform.tfvars"
-
-          TF_STATE_BUCKET=$(awk -F'"' '/^bucket[[:space:]]*=/{print $2}' "${TF_APP_DIR}/backend.hcl")
-          TF_LOCK_TABLE=$(awk -F'"' '/^dynamodb_table[[:space:]]*=/{print $2}' "${TF_APP_DIR}/backend.hcl")
-
-          if [ -z "$TF_STATE_BUCKET" ] || [ -z "$TF_LOCK_TABLE" ]; then
-            echo "Failed to read bucket/table from backend.hcl"
-            exit 1
-          fi
-
-          echo "Using backend config: ${TF_APP_DIR}/backend.hcl"
-          echo "Using tfvars: ${TF_APP_DIR}/terraform.tfvars"
-          echo "Backend bucket: $TF_STATE_BUCKET"
-          echo "Backend lock table: $TF_LOCK_TABLE"
-
-          printf 'TF_STATE_BUCKET=%s\nTF_LOCK_TABLE=%s\n' "$TF_STATE_BUCKET" "$TF_LOCK_TABLE" >> "$GITHUB_ENV"
-
-      - name: Terraform App Init
-        working-directory: ${{ env.TF_APP_DIR }}
-        run: terraform init -reconfigure -backend-config="backend.hcl" -input=false
-
-      - name: Empty S3 buckets before destroy
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "🔍 Listing S3 buckets owned by this project..."
-          BUCKETS=$(aws s3api list-buckets --query "Buckets[?contains(Name, 'khaleoapp')].Name" --output text || true)
-
-          if [ -z "$BUCKETS" ]; then
-            echo "✅ Không tìm thấy bucket nào của khaleoapp"
-            exit 0
-          fi
-
-          echo "Found buckets to process:"
-          printf '%s\n' "$BUCKETS"
-
-          empty_bucket() {
-            local bucket="$1"
-            echo "🗑️  Emptying bucket: $bucket"
-
-            local versions_json
-            versions_json=$(aws s3api list-object-versions \
-              --bucket "$bucket" \
-              --output json \
-              --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}, DeleteMarkers: DeleteMarkers[].{Key:Key,VersionId:VersionId}}')
-
-            local object_count
-            object_count=$(echo "$versions_json" | jq '([.Objects[]?, .DeleteMarkers[]?] | length)')
-
-            if [ "$object_count" -gt 0 ]; then
-              local delete_payload
-              delete_payload=$(echo "$versions_json" | jq -c '{Objects: ([.Objects[]?, .DeleteMarkers[]?] | map({Key, VersionId})), Quiet: false}')
-              aws s3api delete-objects --bucket "$bucket" --delete "$delete_payload" >/dev/null
-            fi
-
-            aws s3 rm "s3://$bucket" --recursive >/dev/null 2>&1 || true
-
-            local uploads_json
-            uploads_json=$(aws s3api list-multipart-uploads --bucket "$bucket" --output json --query 'Uploads[].{Key:Key,UploadId:UploadId}' || echo '[]')
-            local upload_count
-            upload_count=$(echo "${uploads_json:-[]}" | jq 'length')
-            if [ "$upload_count" -gt 0 ]; then
-              echo "${uploads_json:-[]}" | jq -c '.[]' | while read -r upload; do
-                local key upload_id
-                key=$(echo "$upload" | jq -r '.Key')
-                upload_id=$(echo "$upload" | jq -r '.UploadId')
-                aws s3api abort-multipart-upload --bucket "$bucket" --key "$key" --upload-id "$upload_id" >/dev/null 2>&1 || true
-              done
-            fi
-
-            echo "✅ Emptied: $bucket"
-          }
-
-          for bucket in $BUCKETS; do
-            if [[ "$bucket" == "$TF_STATE_BUCKET" ]] && [[ "${{ github.event.inputs.destroy_backend_state }}" != "DESTROY_BACKEND" ]]; then
-              echo "⏭️  Skipping backend bucket: $bucket"
-              continue
-            fi
-            empty_bucket "$bucket"
-          done
-
-      - name: Terraform App Destroy
-        working-directory: ${{ env.TF_APP_DIR }}
-        run: terraform destroy -input=false -auto-approve -var-file="terraform.tfvars"
-
-      - name: Destroy Terraform Backend (Optional)
-        if: ${{ github.event.inputs.destroy_backend_state == 'DESTROY_BACKEND' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          : "${TF_STATE_BUCKET:?Missing TF_STATE_BUCKET from backend.hcl}"
-          : "${TF_LOCK_TABLE:?Missing TF_LOCK_TABLE from backend.hcl}"
-
-          echo "🗑️  Emptying Terraform state bucket: $TF_STATE_BUCKET"
-          aws s3 rm "s3://$TF_STATE_BUCKET" --recursive || true
-
-          echo "🗑️  Deleting Terraform lock table: $TF_LOCK_TABLE"
-          aws dynamodb delete-table --table-name "$TF_LOCK_TABLE" 2>/dev/null || echo "⚠️  Lock table not found or already deleted"
-
-          echo "🗑️  Deleting Terraform state bucket: $TF_STATE_BUCKET"
-          aws s3 rb "s3://$TF_STATE_BUCKET" --force 2>/dev/null || echo "⚠️  State bucket not found or still has versions"
-
-          echo "✅ Terraform backend destroyed"
+          chmod +x .github/scripts/emergency-cleanup.sh
+          ./.github/scripts/emergency-cleanup.sh
 
       - name: Summary
         if: always()
         run: |
           echo "═══════════════════════════════════════════════════════════"
-          echo "💀 PRODUCTION INFRASTRUCTURE DESTRUCTION COMPLETE"
+          echo "💀 STATE-FREE EMERGENCY CLEANUP COMPLETE"
           echo "═══════════════════════════════════════════════════════════"
           echo ""
           if [[ "${{ github.event.inputs.destroy_backend_state }}" == "DESTROY_BACKEND" ]]; then
-            echo "✅ Đã xóa toàn bộ infra + Terraform state backend"
-            echo "📝 Khi apply lại, toàn bộ sẽ được tạo lại từ đầu"
+            echo "✅ Đã xóa toàn bộ AWS resources + Terraform backend"
+            echo "📝 Không còn phụ thuộc Terraform state"
           else
-            echo "✅ Đã xóa toàn bộ app infra (EC2, RDS, ALB, CloudFront...)"
-            echo "ℹ️  Terraform state backend (S3 + DynamoDB) được giữ lại"
-            echo "⚡ Apply tiếp theo có thể tạo lại toàn bộ từ state hiện tại"
+            echo "✅ Đã dọn sạch AWS resources chính theo danh sách cố định"
+            echo "ℹ️  Terraform backend được giữ lại"
           fi
           echo ""
-          echo "🔄 Để tạo lại infrastructure:"
-          echo "   cd infra/terraform/app"
-          echo "   terraform apply -var-file=terraform.tfvars"
+          echo "🔄 Nếu muốn dựng lại, hãy bootstrap backend trước rồi apply Terraform"
           echo "═══════════════════════════════════════════════════════════"
