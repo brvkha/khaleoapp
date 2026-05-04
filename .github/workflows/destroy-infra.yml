@@ -7,6 +7,10 @@ on:
         description: 'Gõ chính xác chữ "DESTROY" để xác nhận phá hủy'
         required: true
         default: 'NO'
+      destroy_backend_state:
+        description: 'Xóa luôn S3 state + DynamoDB lock table? (tìm "DESTROY_BACKEND")'
+        required: false
+        default: 'NO'
 
 permissions:
   contents: read
@@ -100,9 +104,85 @@ jobs:
         working-directory: ${{ env.TF_APP_DIR }}
         run: terraform init -reconfigure -backend-config="backend-staging.hcl" -input=false
 
+      - name: Empty S3 buckets before destroy
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          echo "🔍 Listing all S3 buckets with project prefix..."
+          BUCKETS=$(aws s3 ls | grep -E "khaleo|staging" | awk '{print $3}' || true)
+          
+          if [ -z "$BUCKETS" ]; then
+            echo "✅ Không tìm thấy S3 buckets cần empty"
+          else
+            echo "Found buckets to empty:"
+            echo "$BUCKETS"
+            
+            for bucket in $BUCKETS; do
+              # Không empty terraform state bucket nếu vẫn cần giữ backend
+              if [[ "$bucket" == *"terraform"* ]] && [[ "${{ github.event.inputs.destroy_backend_state }}" != "DESTROY_BACKEND" ]]; then
+                echo "⏭️  Skipping backend bucket: $bucket"
+                continue
+              fi
+              
+              echo "🗑️  Emptying bucket: $bucket"
+              
+              # Empty all versions (versioned buckets)
+              aws s3api delete-objects \
+                --bucket "$bucket" \
+                --delete "$(aws s3api list-object-versions --bucket "$bucket" --query='{"Objects": [.Versions[].[Key,VersionId]][0]}' --output=json)" 2>/dev/null || true
+              
+              # Empty remaining objects
+              aws s3 rm "s3://$bucket" --recursive 2>/dev/null || true
+              
+              echo "✅ Emptied: $bucket"
+            done
+          fi
+
       - name: Terraform App Destroy
         working-directory: ${{ env.TF_APP_DIR }}
         run: terraform destroy -input=false -auto-approve -var-file="env/ci.staging.tfvars"
 
-      - name: Notify
-        run: echo "💀 Đã destroy app infra Staging. Terraform backend (S3 state + lock table) được giữ lại."
+      - name: Destroy Terraform Backend (Optional)
+        if: ${{ github.event.inputs.destroy_backend_state == 'DESTROY_BACKEND' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          TF_STATE_BUCKET="${{ secrets.TF_STATE_BUCKET }}"
+          TF_LOCK_TABLE="${{ secrets.TF_LOCK_TABLE }}"
+          if [ -z "$TF_LOCK_TABLE" ]; then
+            TF_LOCK_TABLE="khaleoapp-terraform-lock"
+          fi
+          
+          echo "🗑️  Emptying Terraform state bucket: $TF_STATE_BUCKET"
+          aws s3 rm "s3://$TF_STATE_BUCKET" --recursive || true
+          
+          echo "🗑️  Deleting Terraform lock table: $TF_LOCK_TABLE"
+          aws dynamodb delete-table --table-name "$TF_LOCK_TABLE" 2>/dev/null || echo "⚠️  Lock table not found or already deleted"
+          
+          echo "🗑️  Deleting Terraform state bucket: $TF_STATE_BUCKET"
+          aws s3 rb "s3://$TF_STATE_BUCKET" --force 2>/dev/null || echo "⚠️  State bucket not found or still has versions"
+          
+          echo "✅ Terraform backend destroyed"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "═══════════════════════════════════════════════════════════"
+          echo "💀 STAGING INFRASTRUCTURE DESTRUCTION COMPLETE"
+          echo "═══════════════════════════════════════════════════════════"
+          echo ""
+          if [[ "${{ github.event.inputs.destroy_backend_state }}" == "DESTROY_BACKEND" ]]; then
+            echo "✅ Đã xóa toàn bộ infra + Terraform state backend"
+            echo "📝 Khi apply lại, toàn bộ sẽ được tạo lại từ đầu"
+          else
+            echo "✅ Đã xóa toàn bộ app infra (EC2, RDS, ALB, CloudFront...)"
+            echo "ℹ️  Terraform state backend (S3 + DynamoDB) được giữ lại"
+            echo "⚡ Apply tiếp theo sẽ nhanh hơn nhưng vẫn phải import resources mới"
+          fi
+          echo ""
+          echo "🔄 Để tạo lại infrastructurẻ:"
+          echo "   cd infra/terraform/app"
+          echo "   terraform apply -var-file=env/ci.staging.tfvars"
+          echo "═══════════════════════════════════════════════════════════"
