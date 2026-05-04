@@ -1,4 +1,4 @@
-name: Destroy Staging Infra (DANGER)
+name: Destroy Production Infra (DANGER)
 
 on:
   workflow_dispatch:
@@ -18,18 +18,17 @@ permissions:
 env:
   AWS_REGION: ap-southeast-1
   PROJECT_NAME: khaleoapp
-  TF_ENV: staging
   TF_APP_DIR: infra/terraform/app
   ROUTE53_ZONE_NAME: khaleoshop.click
-  FRONTEND_DOMAIN_NAME: staging.khaleoshop.click
-  FRONTEND_ADDITIONAL_DOMAIN_NAME: stage.khaleoshop.click
-  API_DOMAIN_NAME: api-staging.khaleoshop.click
+  FRONTEND_DOMAIN_NAME: khaleoshop.click
+  FRONTEND_ADDITIONAL_DOMAIN_NAME: www.khaleoshop.click
+  API_DOMAIN_NAME: api.khaleoshop.click
 
 jobs:
   destroy-infra:
-    name: Nuke Staging Environment
+    name: Nuke Production Environment
     runs-on: ubuntu-latest
-    environment: staging
+    environment: prod
     if: ${{ github.event.inputs.confirm_destroy == 'DESTROY' }}
 
     steps:
@@ -48,129 +47,109 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Render CI tfvars and backend config
+      - name: Verify Terraform files
         shell: bash
         run: |
           set -euo pipefail
 
-          if [ -z "${{ secrets.TF_STATE_BUCKET }}" ]; then
-            echo "Missing required secret: TF_STATE_BUCKET"
-            exit 1
-          fi
+          test -f "${TF_APP_DIR}/backend.hcl"
+          test -f "${TF_APP_DIR}/terraform.tfvars"
 
-          TF_LOCK_TABLE="${{ secrets.TF_LOCK_TABLE }}"
-          if [ -z "$TF_LOCK_TABLE" ]; then
-            TF_LOCK_TABLE="khaleoapp-terraform-lock"
-          fi
-
-          TF_BACKEND_KEY="${{ secrets.TF_BACKEND_KEY }}"
-          if [ -z "$TF_BACKEND_KEY" ]; then
-            TF_BACKEND_KEY="khaleoapp/staging/terraform.tfstate"
-          fi
-
-          cat > "${TF_APP_DIR}/backend-staging.hcl" <<EOF
-          bucket         = "${{ secrets.TF_STATE_BUCKET }}"
-          key            = "${TF_BACKEND_KEY}"
-          region         = "${AWS_REGION}"
-          dynamodb_table = "${TF_LOCK_TABLE}"
-          encrypt        = true
-          EOF
-
-          cat > "${TF_APP_DIR}/env/ci.staging.tfvars" <<EOF
-          aws_region                    = "${AWS_REGION}"
-          project                       = "${PROJECT_NAME}"
-          environment                   = "${TF_ENV}"
-          vpc_cidr                      = "10.0.0.0/16"
-          public_subnet_cidr            = "10.0.1.0/24"
-          private_subnet_a_cidr         = "10.0.2.0/24"
-          private_subnet_b_cidr         = "10.0.3.0/24"
-          route53_zone_name             = "${ROUTE53_ZONE_NAME}"
-          frontend_domain_name          = "${FRONTEND_DOMAIN_NAME}"
-          frontend_additional_domain_names = ["${FRONTEND_ADDITIONAL_DOMAIN_NAME}"]
-          api_domain_name               = "${API_DOMAIN_NAME}"
-          backend_container_port        = 8080
-          tls_email                     = "${{ secrets.TLS_EMAIL }}"
-          ec2_instance_type             = "t3.micro"
-          db_instance_class             = "db.t3.micro"
-          db_name                       = "${{ secrets.RDS_DB_NAME }}"
-          db_username                   = "${{ secrets.RDS_DB_USER }}"
-          db_password                   = "${{ secrets.RDS_DB_PASSWORD }}"
-          db_backup_retention_days      = 7
-          allowed_http_cidrs            = ["0.0.0.0/0"]
-          enable_frontend_custom_domain = true
-          EOF
+          echo "Using backend config: ${TF_APP_DIR}/backend.hcl"
+          echo "Using tfvars: ${TF_APP_DIR}/terraform.tfvars"
 
       - name: Terraform App Init
         working-directory: ${{ env.TF_APP_DIR }}
-        run: terraform init -reconfigure -backend-config="backend-staging.hcl" -input=false
+        run: terraform init -reconfigure -backend-config="backend.hcl" -input=false
 
       - name: Empty S3 buckets before destroy
         shell: bash
         run: |
           set -euo pipefail
-          
-          echo "🔍 Listing all S3 buckets with project prefix..."
-          BUCKETS=$(aws s3 ls | grep -E "khaleo|staging" | awk '{print $3}' || true)
-          
+
+          echo "🔍 Listing S3 buckets owned by this project..."
+          BUCKETS=$(aws s3api list-buckets --query "Buckets[?contains(Name, 'khaleoapp')].Name" --output text || true)
+
           if [ -z "$BUCKETS" ]; then
-            echo "✅ Không tìm thấy S3 buckets cần empty"
-          else
-            echo "Found buckets to empty:"
-            echo "$BUCKETS"
-            
-            for bucket in $BUCKETS; do
-              # Không empty terraform state bucket nếu vẫn cần giữ backend
-              if [[ "$bucket" == *"terraform"* ]] && [[ "${{ github.event.inputs.destroy_backend_state }}" != "DESTROY_BACKEND" ]]; then
-                echo "⏭️  Skipping backend bucket: $bucket"
-                continue
-              fi
-              
-              echo "🗑️  Emptying bucket: $bucket"
-              
-              # Empty all versions (versioned buckets)
-              aws s3api delete-objects \
-                --bucket "$bucket" \
-                --delete "$(aws s3api list-object-versions --bucket "$bucket" --query='{"Objects": [.Versions[].[Key,VersionId]][0]}' --output=json)" 2>/dev/null || true
-              
-              # Empty remaining objects
-              aws s3 rm "s3://$bucket" --recursive 2>/dev/null || true
-              
-              echo "✅ Emptied: $bucket"
-            done
+            echo "✅ Không tìm thấy bucket nào của khaleoapp"
+            exit 0
           fi
+
+          echo "Found buckets to process:"
+          printf '%s\n' "$BUCKETS"
+
+          empty_bucket() {
+            local bucket="$1"
+            echo "🗑️  Emptying bucket: $bucket"
+
+            local versions_json
+            versions_json=$(aws s3api list-object-versions \
+              --bucket "$bucket" \
+              --output json \
+              --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}, DeleteMarkers: DeleteMarkers[].{Key:Key,VersionId:VersionId}}')
+
+            local object_count
+            object_count=$(echo "$versions_json" | jq '([.Objects[]?, .DeleteMarkers[]?] | length)')
+
+            if [ "$object_count" -gt 0 ]; then
+              aws s3api delete-objects --bucket "$bucket" --delete "$versions_json" >/dev/null
+            fi
+
+            aws s3 rm "s3://$bucket" --recursive >/dev/null 2>&1 || true
+
+            local uploads_json
+            uploads_json=$(aws s3api list-multipart-uploads --bucket "$bucket" --output json --query 'Uploads[].{Key:Key,UploadId:UploadId}' || echo '[]')
+            local upload_count
+            upload_count=$(echo "${uploads_json:-[]}" | jq 'length')
+            if [ "$upload_count" -gt 0 ]; then
+              echo "${uploads_json:-[]}" | jq -c '.[]' | while read -r upload; do
+                local key upload_id
+                key=$(echo "$upload" | jq -r '.Key')
+                upload_id=$(echo "$upload" | jq -r '.UploadId')
+                aws s3api abort-multipart-upload --bucket "$bucket" --key "$key" --upload-id "$upload_id" >/dev/null 2>&1 || true
+              done
+            fi
+
+            echo "✅ Emptied: $bucket"
+          }
+
+          for bucket in $BUCKETS; do
+            if [[ "$bucket" == "khaleoapp-tf-state-20260410" ]] && [[ "${{ github.event.inputs.destroy_backend_state }}" != "DESTROY_BACKEND" ]]; then
+              echo "⏭️  Skipping backend bucket: $bucket"
+              continue
+            fi
+            empty_bucket "$bucket"
+          done
 
       - name: Terraform App Destroy
         working-directory: ${{ env.TF_APP_DIR }}
-        run: terraform destroy -input=false -auto-approve -var-file="env/ci.staging.tfvars"
+        run: terraform destroy -input=false -auto-approve -var-file="terraform.tfvars"
 
       - name: Destroy Terraform Backend (Optional)
         if: ${{ github.event.inputs.destroy_backend_state == 'DESTROY_BACKEND' }}
         shell: bash
         run: |
           set -euo pipefail
-          
-          TF_STATE_BUCKET="${{ secrets.TF_STATE_BUCKET }}"
-          TF_LOCK_TABLE="${{ secrets.TF_LOCK_TABLE }}"
-          if [ -z "$TF_LOCK_TABLE" ]; then
-            TF_LOCK_TABLE="khaleoapp-terraform-lock"
-          fi
-          
+
+          TF_STATE_BUCKET="khaleoapp-tf-state-20260410"
+          TF_LOCK_TABLE="khaleoapp-terraform-lock"
+
           echo "🗑️  Emptying Terraform state bucket: $TF_STATE_BUCKET"
           aws s3 rm "s3://$TF_STATE_BUCKET" --recursive || true
-          
+
           echo "🗑️  Deleting Terraform lock table: $TF_LOCK_TABLE"
           aws dynamodb delete-table --table-name "$TF_LOCK_TABLE" 2>/dev/null || echo "⚠️  Lock table not found or already deleted"
-          
+
           echo "🗑️  Deleting Terraform state bucket: $TF_STATE_BUCKET"
           aws s3 rb "s3://$TF_STATE_BUCKET" --force 2>/dev/null || echo "⚠️  State bucket not found or still has versions"
-          
+
           echo "✅ Terraform backend destroyed"
 
       - name: Summary
         if: always()
         run: |
           echo "═══════════════════════════════════════════════════════════"
-          echo "💀 STAGING INFRASTRUCTURE DESTRUCTION COMPLETE"
+          echo "💀 PRODUCTION INFRASTRUCTURE DESTRUCTION COMPLETE"
           echo "═══════════════════════════════════════════════════════════"
           echo ""
           if [[ "${{ github.event.inputs.destroy_backend_state }}" == "DESTROY_BACKEND" ]]; then
@@ -179,10 +158,10 @@ jobs:
           else
             echo "✅ Đã xóa toàn bộ app infra (EC2, RDS, ALB, CloudFront...)"
             echo "ℹ️  Terraform state backend (S3 + DynamoDB) được giữ lại"
-            echo "⚡ Apply tiếp theo sẽ nhanh hơn nhưng vẫn phải import resources mới"
+            echo "⚡ Apply tiếp theo có thể tạo lại toàn bộ từ state hiện tại"
           fi
           echo ""
-          echo "🔄 Để tạo lại infrastructurẻ:"
+          echo "🔄 Để tạo lại infrastructure:"
           echo "   cd infra/terraform/app"
-          echo "   terraform apply -var-file=env/ci.staging.tfvars"
+          echo "   terraform apply -var-file=terraform.tfvars"
           echo "═══════════════════════════════════════════════════════════"
