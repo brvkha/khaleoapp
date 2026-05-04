@@ -104,7 +104,9 @@ jobs:
             object_count=$(echo "$versions_json" | jq '([.Objects[]?, .DeleteMarkers[]?] | length)')
 
             if [ "$object_count" -gt 0 ]; then
-              aws s3api delete-objects --bucket "$bucket" --delete "$versions_json" >/dev/null
+              local delete_payload
+              delete_payload=$(echo "$versions_json" | jq -c '{Objects: ([.Objects[]?, .DeleteMarkers[]?] | map({Key, VersionId})), Quiet: false}')
+              aws s3api delete-objects --bucket "$bucket" --delete "$delete_payload" >/dev/null
             fi
 
             aws s3 rm "s3://$bucket" --recursive >/dev/null 2>&1 || true
