@@ -55,8 +55,20 @@ jobs:
           test -f "${TF_APP_DIR}/backend.hcl"
           test -f "${TF_APP_DIR}/terraform.tfvars"
 
+          TF_STATE_BUCKET=$(awk -F'"' '/^bucket[[:space:]]*=/{print $2}' "${TF_APP_DIR}/backend.hcl")
+          TF_LOCK_TABLE=$(awk -F'"' '/^dynamodb_table[[:space:]]*=/{print $2}' "${TF_APP_DIR}/backend.hcl")
+
+          if [ -z "$TF_STATE_BUCKET" ] || [ -z "$TF_LOCK_TABLE" ]; then
+            echo "Failed to read bucket/table from backend.hcl"
+            exit 1
+          fi
+
           echo "Using backend config: ${TF_APP_DIR}/backend.hcl"
           echo "Using tfvars: ${TF_APP_DIR}/terraform.tfvars"
+          echo "Backend bucket: $TF_STATE_BUCKET"
+          echo "Backend lock table: $TF_LOCK_TABLE"
+
+          printf 'TF_STATE_BUCKET=%s\nTF_LOCK_TABLE=%s\n' "$TF_STATE_BUCKET" "$TF_LOCK_TABLE" >> "$GITHUB_ENV"
 
       - name: Terraform App Init
         working-directory: ${{ env.TF_APP_DIR }}
@@ -114,7 +126,7 @@ jobs:
           }
 
           for bucket in $BUCKETS; do
-            if [[ "$bucket" == "khaleoapp-tf-state-20260410" ]] && [[ "${{ github.event.inputs.destroy_backend_state }}" != "DESTROY_BACKEND" ]]; then
+            if [[ "$bucket" == "$TF_STATE_BUCKET" ]] && [[ "${{ github.event.inputs.destroy_backend_state }}" != "DESTROY_BACKEND" ]]; then
               echo "⏭️  Skipping backend bucket: $bucket"
               continue
             fi
@@ -131,8 +143,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          TF_STATE_BUCKET="khaleoapp-tf-state-20260410"
-          TF_LOCK_TABLE="khaleoapp-terraform-lock"
+          : "${TF_STATE_BUCKET:?Missing TF_STATE_BUCKET from backend.hcl}"
+          : "${TF_LOCK_TABLE:?Missing TF_LOCK_TABLE from backend.hcl}"
 
           echo "🗑️  Emptying Terraform state bucket: $TF_STATE_BUCKET"
           aws s3 rm "s3://$TF_STATE_BUCKET" --recursive || true
